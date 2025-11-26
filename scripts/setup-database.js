@@ -1,144 +1,125 @@
 /**
- * Database Setup Script
+ * Database Setup Script (PostgreSQL/NeonDB)
  * 
  * This script helps you set up the database with initial configuration
  * Run: node scripts/setup-database.js
  */
 
-const mysql = require('mysql2/promise')
-const bcrypt = require('bcryptjs')
+const { Pool } = require('pg')
+const fs = require('fs')
+const path = require('path')
 require('dotenv').config({ path: '.env.local' })
 
 async function setupDatabase() {
-  let connection
+  let pool
 
   try {
-    // Connect without specifying database first
-    connection = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
+    // Check for DATABASE_URL
+    if (!process.env.DATABASE_URL) {
+      console.error('❌ DATABASE_URL environment variable is not set!')
+      console.error('\nPlease set DATABASE_URL in your .env.local file:')
+      console.error('DATABASE_URL=postgresql://user:password@host/database?sslmode=require')
+      console.error('\nGet your connection string from NeonDB dashboard:')
+      console.error('https://console.neon.tech')
+      process.exit(1)
+    }
+
+    // Create connection pool
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false // Required for NeonDB
+      }
     })
 
-    console.log('Connected to MySQL server')
+    console.log('✅ Connected to PostgreSQL/NeonDB database')
+    console.log('')
 
-    const dbName = process.env.DB_NAME || 'sugarbunny_stores'
+    // Test connection
+    await pool.query('SELECT NOW()')
+    console.log('✅ Database connection test successful')
+    console.log('')
+
+    // Read and execute schema file
+    const schemaPath = path.join(__dirname, '..', 'sql', 'schema.sql')
     
-    // Try to create database, but handle permission errors gracefully
-    try {
-      await connection.query(`CREATE DATABASE IF NOT EXISTS ${dbName}`)
-      console.log(`Database '${dbName}' created or already exists`)
-    } catch (error) {
-      // Error 1044 = ER_DBACCESS_DENIED_ERROR
-      // Error 1045 = ER_ACCESS_DENIED_ERROR
-      if (error.code === 'ER_DBACCESS_DENIED_ERROR' || 
-          error.code === 'ER_ACCESS_DENIED_ERROR' ||
-          error.errno === 1044 ||
-          error.errno === 1045 ||
-          error.message.includes('Access denied')) {
-        console.log(`⚠️  Cannot create database (insufficient privileges)`)
-        console.log(`   Assuming database '${dbName}' already exists`)
-        console.log(`   This is normal for shared hosting accounts`)
-        console.log(`   Please create the database through your hosting control panel if it doesn't exist`)
-      } else {
-        throw error
+    if (!fs.existsSync(schemaPath)) {
+      console.error(`❌ Schema file not found: ${schemaPath}`)
+      process.exit(1)
+    }
+
+    const schemaSQL = fs.readFileSync(schemaPath, 'utf8')
+    
+    console.log('📝 Executing database schema...')
+    console.log('')
+
+    // Split SQL by semicolons and execute each statement
+    // PostgreSQL requires executing statements separately
+    const statements = schemaSQL
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.startsWith('--'))
+
+    for (const statement of statements) {
+      if (statement.trim()) {
+        try {
+          await pool.query(statement)
+        } catch (error) {
+          // Ignore "already exists" errors
+          if (!error.message.includes('already exists') && 
+              !error.message.includes('duplicate') &&
+              !error.message.includes('does not exist')) {
+            console.warn(`⚠️  Warning: ${error.message}`)
+          }
+        }
       }
     }
 
-    // Switch to the database
-    try {
-      await connection.query(`USE ${dbName}`)
-    } catch (error) {
-      console.error(`❌ Cannot access database '${dbName}'`)
-      console.error(`   Please make sure the database exists`)
-      console.error(`   Error: ${error.message}`)
-      throw error
-    }
-
-    // Create tables
-    console.log('Creating tables...')
-
-    // Users table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    `)
-    console.log('✓ Users table created')
-
-    // Admins table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS admins (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    `)
-    console.log('✓ Admins table created')
-
-    // Admin sessions table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS admin_sessions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        admin_id INT NOT NULL,
-        session_token VARCHAR(255) UNIQUE NOT NULL,
-        expires_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    `)
-    console.log('✓ Admin sessions table created')
-
-    // Create default admin account
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@sugarbunny.com'
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123'
-
-    // Check if admin already exists
-    const [existingAdmins] = await connection.query(
-      'SELECT * FROM admins WHERE email = ?',
-      [adminEmail]
-    )
-
-    if (existingAdmins.length === 0) {
-      const hashedPassword = await bcrypt.hash(adminPassword, 10)
-      await connection.query(
-        'INSERT INTO admins (email, password) VALUES (?, ?)',
-        [adminEmail, hashedPassword]
-      )
-      console.log(`✓ Default admin account created`)
-      console.log(`  Email: ${adminEmail}`)
-      console.log(`  Password: ${adminPassword}`)
-      console.log(`  ⚠️  IMPORTANT: Change this password after first login!`)
-    } else {
-      console.log(`✓ Admin account already exists (${adminEmail})`)
-    }
-
-    console.log('\n✅ Database setup completed successfully!')
-    console.log('\nNext steps:')
-    console.log('1. Make sure your .env.local file is configured')
-    console.log('2. Run: npm run dev')
-    console.log('3. Navigate to /admin/login and use the admin credentials')
+    console.log('✅ Database schema executed successfully')
+    console.log('')
+    console.log('📋 Next steps:')
+    console.log('1. Create an admin account: npm run create-admin')
+    console.log('2. Start the development server: npm run dev')
+    console.log('3. Login at /admin/login with default credentials:')
+    console.log('   - Email: admin@sugarbunny.com')
+    console.log('   - Password: admin123')
+    console.log('')
+    console.log('⚠️  IMPORTANT: Change default admin passwords after first login!')
 
   } catch (error) {
-    console.error('❌ Error setting up database:', error.message)
-    console.error('\nMake sure:')
-    console.error('1. MySQL server is running')
-    console.error('2. Database credentials in .env.local are correct')
-    console.error('3. User has CREATE DATABASE and CREATE TABLE permissions')
+    console.error('\n❌ Error setting up database:', error.message)
+    console.error('')
+    
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      console.error('⚠️  CONNECTION ERROR')
+      console.error('')
+      console.error('   Possible issues:')
+      console.error('   1. DATABASE_URL is incorrect')
+      console.error('   2. NeonDB project is paused (free tier auto-pauses)')
+      console.error('   3. Network connectivity issues')
+      console.error('')
+      console.error('   Solutions:')
+      console.error('   - Verify DATABASE_URL in .env.local')
+      console.error('   - Check NeonDB dashboard and wake up project if paused')
+      console.error('   - Ensure connection string includes ?sslmode=require')
+    } else if (error.message.includes('password authentication failed')) {
+      console.error('⚠️  AUTHENTICATION ERROR')
+      console.error('')
+      console.error('   The database credentials are incorrect.')
+      console.error('   Please verify your DATABASE_URL in .env.local')
+    } else if (error.message.includes('database') && error.message.includes('does not exist')) {
+      console.error('⚠️  DATABASE NOT FOUND')
+      console.error('')
+      console.error('   The database specified in DATABASE_URL does not exist.')
+      console.error('   Create it in NeonDB dashboard first.')
+    }
+    
     process.exit(1)
   } finally {
-    if (connection) {
-      await connection.end()
-      console.log('\nDatabase connection closed')
+    if (pool) {
+      await pool.end()
     }
   }
 }
 
 setupDatabase()
-

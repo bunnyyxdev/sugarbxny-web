@@ -1,5 +1,5 @@
 /**
- * Check .env.local configuration
+ * Check .env.local configuration (PostgreSQL/NeonDB)
  * Run: node scripts/check-env.js
  */
 
@@ -13,10 +13,18 @@ console.log('📋 Checking .env.local configuration...\n')
 if (!fs.existsSync(envPath)) {
   console.error('❌ .env.local file not found!')
   console.log('\nPlease create .env.local with the following:')
-  console.log('\nDB_HOST=localhost')
-  console.log('DB_USER=your_mysql_username')
-  console.log('DB_PASSWORD=your_mysql_password')
-  console.log('DB_NAME=your_database_name')
+  console.log('\n# Database Configuration (NeonDB PostgreSQL)')
+  console.log('DATABASE_URL=postgresql://user:password@host/database?sslmode=require')
+  console.log('DATABASE_URL_UNPOOLED=postgresql://user:password@host/database?sslmode=require')
+  console.log('\n# Application')
+  console.log('NEXTAUTH_SECRET=your_secret_key_here')
+  console.log('NEXTAUTH_URL=http://localhost:3000')
+  console.log('\n# Email Configuration (optional)')
+  console.log('SMTP_HOST=smtp.gmail.com')
+  console.log('SMTP_PORT=587')
+  console.log('SMTP_USER=your_email@gmail.com')
+  console.log('SMTP_PASS=your_app_password')
+  console.log('\nGet your DATABASE_URL from NeonDB dashboard: https://console.neon.tech')
   process.exit(1)
 }
 
@@ -35,48 +43,50 @@ envContent.split('\n').forEach(line => {
 
 console.log('Current configuration:')
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-console.log(`DB_HOST: ${envVars.DB_HOST || '❌ NOT SET'}`)
-console.log(`DB_USER: ${envVars.DB_USER || '❌ NOT SET'}`)
-console.log(`DB_PASSWORD: ${envVars.DB_PASSWORD ? '✅ SET (hidden)' : '❌ NOT SET'}`)
-console.log(`DB_NAME: ${envVars.DB_NAME || '❌ NOT SET'}`)
+console.log(`DATABASE_URL: ${envVars.DATABASE_URL ? '✅ SET' : '❌ NOT SET'}`)
+console.log(`DATABASE_URL_UNPOOLED: ${envVars.DATABASE_URL_UNPOOLED ? '✅ SET (optional)' : '⚠️  NOT SET (optional)'}`)
+console.log(`NEXTAUTH_SECRET: ${envVars.NEXTAUTH_SECRET ? '✅ SET' : '❌ NOT SET'}`)
+console.log(`NEXTAUTH_URL: ${envVars.NEXTAUTH_URL || '⚠️  NOT SET (defaults to http://localhost:3000)'}`)
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
 
 const issues = []
 
-if (!envVars.DB_HOST) {
-  issues.push('❌ DB_HOST is not set')
-} else if (envVars.DB_HOST !== 'localhost' && envVars.DB_HOST !== '127.0.0.1') {
-  issues.push(`⚠️  DB_HOST is "${envVars.DB_HOST}" - for shared hosting, it should be "localhost"`)
+if (!envVars.DATABASE_URL) {
+  issues.push('❌ DATABASE_URL is not set (REQUIRED)')
+} else {
+  // Validate connection string format
+  try {
+    const url = new URL(envVars.DATABASE_URL)
+    if (url.protocol !== 'postgresql:' && url.protocol !== 'postgres:') {
+      issues.push('⚠️  DATABASE_URL should use postgresql:// or postgres:// protocol')
+    }
+    if (!envVars.DATABASE_URL.includes('sslmode=require')) {
+      issues.push('⚠️  DATABASE_URL should include ?sslmode=require for NeonDB')
+    }
+  } catch (e) {
+    issues.push('⚠️  DATABASE_URL format appears invalid')
+  }
 }
 
-if (!envVars.DB_USER) {
-  issues.push('❌ DB_USER is not set')
-}
-
-if (!envVars.DB_PASSWORD) {
-  issues.push('❌ DB_PASSWORD is not set (this is required!)')
-}
-
-if (!envVars.DB_NAME) {
-  issues.push('❌ DB_NAME is not set')
+if (!envVars.NEXTAUTH_SECRET) {
+  issues.push('❌ NEXTAUTH_SECRET is not set (REQUIRED)')
 }
 
 if (issues.length === 0) {
-  console.log('✅ All required database variables are set!')
+  console.log('✅ All required environment variables are set!')
   console.log('\nNext steps:')
-  console.log('1. Verify your credentials are correct')
-  console.log('2. Make sure DB_HOST is "localhost" for shared hosting')
+  console.log('1. Verify your DATABASE_URL is correct (get from NeonDB dashboard)')
+  console.log('2. Ensure NeonDB project is active (not paused)')
   console.log('3. Run: npm run setup-db')
-  console.log('4. Restart your dev server: npm run dev')
+  console.log('4. Create admin account: npm run create-admin')
+  console.log('5. Start dev server: npm run dev')
 } else {
   console.log('⚠️  Issues found:')
   issues.forEach(issue => console.log(`   ${issue}`))
   console.log('\n📝 To fix:')
   console.log('1. Open .env.local in the root directory')
-  console.log('2. Update the values with your actual database credentials')
-  console.log('3. For shared hosting:')
-  console.log('   - DB_HOST should be "localhost"')
-  console.log('   - Get DB_USER, DB_PASSWORD, and DB_NAME from your hosting control panel')
-  console.log('   - Go to MySQL Databases section to find these values')
+  console.log('2. Set DATABASE_URL with your NeonDB connection string')
+  console.log('3. Get connection string from: https://console.neon.tech')
+  console.log('4. Format: postgresql://user:password@host/database?sslmode=require')
+  console.log('5. Generate NEXTAUTH_SECRET: openssl rand -base64 32')
 }
-

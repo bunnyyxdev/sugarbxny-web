@@ -1,28 +1,23 @@
 /**
- * Database Configuration Example
+ * Database Configuration Example (PostgreSQL/NeonDB)
  * 
- * Copy this file to config/database.js and update with your MySQL credentials
+ * Copy this file to config/database.js and update with your PostgreSQL credentials
  * Or use environment variables in .env.local (recommended)
+ * 
+ * For NeonDB, use DATABASE_URL connection string instead of individual config
  */
 
 module.exports = {
   development: {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'sugarbunny_stores',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
+    connectionString: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/sugarbunny_stores',
+    ssl: {
+      rejectUnauthorized: false // Required for NeonDB
+    }
   },
   production: {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 20,
-    queueLimit: 0,
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false // Required for NeonDB
+    }
   }
 }
-

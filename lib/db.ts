@@ -1,299 +1,300 @@
-import mysql from 'mysql2/promise'
+import { Pool } from 'pg'
 import bcrypt from 'bcryptjs'
 
 // Database configuration - reads from environment variables
-// Make sure to set these in your .env.local file
-// Note: For shared hosting, try "localhost" first if remote connection fails
-const dbConfig = {
-  // For shared hosting, use 'localhost' if app and MySQL are on same server
-  // Only use remote IP if you're connecting from a different server
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'sugarbunny_stores',
-  waitForConnections: true,
-  connectionLimit: 1, // Absolute minimum - use single connection for shared hosting
-  queueLimit: 10, // Allow queuing of requests
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
-  connectTimeout: 10000, // 10 seconds connection timeout
-  // For shared hosting, use 'localhost' (not remote IP)
-  // Some hosts require 127.0.0.1 instead
-  // Enable SSL in production (undefined for local development)
-  ...(process.env.NODE_ENV === 'production' ? { ssl: { rejectUnauthorized: false } } : {}),
-}
+// Make sure to set DATABASE_URL in your .env.local file
+// Format: postgresql://user:password@host:port/database?sslmode=require
 
 // Create connection pool with singleton pattern to prevent multiple pools
-let pool: mysql.Pool | null = null
+let pool: Pool | null = null
 
-function getPool(): mysql.Pool {
+function getPool(): Pool {
   // Don't create pool during build
   if (process.env.NEXT_PHASE === 'phase-production-build') {
     throw new Error('Database pool should not be accessed during build phase')
   }
   
   if (!pool) {
-    pool = mysql.createPool(dbConfig)
+    const connectionString = process.env.DATABASE_URL
+    
+    if (!connectionString) {
+      throw new Error('DATABASE_URL environment variable is not set. Please set it in .env.local')
+    }
+
+    pool = new Pool({
+      connectionString,
+      ssl: {
+        rejectUnauthorized: false // Required for NeonDB
+      },
+      max: 20, // Maximum number of clients in the pool
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    })
+
+    // Handle pool errors
+    pool.on('error', (err) => {
+      console.error('Unexpected error on idle client', err)
+    })
   }
+  
   return pool
 }
 
-// Export the pool with lazy initialization using Proxy
-// This prevents pool creation during build phase
-export default new Proxy({} as mysql.Pool, {
+// Helper function to convert MySQL ? placeholders to PostgreSQL $1, $2, etc.
+function convertMySQLToPostgreSQL(query: string): string {
+  if (!query) return query
+  
+  // Check if query already uses PostgreSQL placeholders
+  if (query.includes('$1')) return query
+  
+  // Convert ? to $1, $2, etc.
+  let paramIndex = 1
+  return query.replace(/\?/g, () => `$${paramIndex++}`)
+}
+
+// Helper function to add RETURNING id to INSERT queries if needed
+function addReturningIfNeeded(query: string, isInsert: boolean = false): string {
+  if (!isInsert) return query
+  
+  const trimmedQuery = query.trim()
+  // Check if it's an INSERT and doesn't already have RETURNING
+  if (trimmedQuery.toUpperCase().startsWith('INSERT') && 
+      !trimmedQuery.toUpperCase().includes('RETURNING')) {
+    // Add RETURNING id before semicolon or at end
+    if (trimmedQuery.endsWith(';')) {
+      return trimmedQuery.slice(0, -1) + ' RETURNING id;'
+    }
+    return trimmedQuery + ' RETURNING id'
+  }
+  
+  return query
+}
+
+// Export a proxy that provides MySQL-like interface for compatibility
+// This allows existing code to work with minimal changes
+export default new Proxy({} as any, {
   get(target, prop) {
     // During build, return no-op functions
     if (process.env.NEXT_PHASE === 'phase-production-build') {
-      if (typeof prop === 'string' && (prop === 'execute' || prop === 'getConnection')) {
-        return () => Promise.resolve([])
+      if (typeof prop === 'string' && (prop === 'execute' || prop === 'query' || prop === 'getConnection')) {
+        return () => Promise.resolve([[], { rowCount: 0, insertId: null }])
       }
       return undefined
     }
     
-    // At runtime, get the actual pool and return the property
     const poolInstance = getPool()
+    
+    // Map MySQL methods to PostgreSQL
+    if (prop === 'execute') {
+      // MySQL execute() -> PostgreSQL query()
+      return async (query: string, params?: any[]) => {
+        const isInsert = query.trim().toUpperCase().startsWith('INSERT')
+        const convertedQuery = convertMySQLToPostgreSQL(query)
+        const finalQuery = addReturningIfNeeded(convertedQuery, isInsert)
+        
+        const result = await poolInstance.query(finalQuery, params)
+        
+        // Map PostgreSQL result to MySQL-like format
+        const mysqlLikeResult = {
+          ...result,
+          insertId: isInsert && result.rows.length > 0 ? result.rows[0].id : null
+        }
+        
+        return [result.rows, mysqlLikeResult]
+      }
+    }
+    
+    if (prop === 'query') {
+      // Direct query access
+      return async (query: string, params?: any[]) => {
+        const convertedQuery = convertMySQLToPostgreSQL(query)
+        return await poolInstance.query(convertedQuery, params)
+      }
+    }
+    
+    if (prop === 'getConnection') {
+      // Return a connection-like object
+      return async () => {
+        const client = await poolInstance.connect()
+        return {
+          execute: async (query: string, params?: any[]) => {
+            const isInsert = query.trim().toUpperCase().startsWith('INSERT')
+            const convertedQuery = convertMySQLToPostgreSQL(query)
+            const finalQuery = addReturningIfNeeded(convertedQuery, isInsert)
+            
+            const result = await client.query(finalQuery, params)
+            
+            // Map PostgreSQL result to MySQL-like format
+            const mysqlLikeResult = {
+              ...result,
+              insertId: isInsert && result.rows.length > 0 ? result.rows[0].id : null
+            }
+            
+            return [result.rows, mysqlLikeResult]
+          },
+          query: async (query: string, params?: any[]) => {
+            const convertedQuery = convertMySQLToPostgreSQL(query)
+            return await client.query(convertedQuery, params)
+          },
+          release: () => client.release(),
+          beginTransaction: async () => {
+            await client.query('BEGIN')
+          },
+          commit: async () => {
+            await client.query('COMMIT')
+          },
+          rollback: async () => {
+            await client.query('ROLLBACK')
+          }
+        }
+      }
+    }
+    
+    // For other properties, return from pool
     const value = (poolInstance as any)[prop]
     return typeof value === 'function' ? value.bind(poolInstance) : value
   }
 })
 
-// Note: mysql2/promise pool doesn't support event handlers like 'error'
-// Errors are handled at the query/connection level via try/catch blocks
-
 // Test connection on startup (skip during build)
-// Only run in server environment, not during build or in browser
 if (typeof window === 'undefined' && process.env.NEXT_PHASE !== 'phase-production-build') {
-  // Only test connection in runtime, not during build
-  // Use setTimeout to avoid blocking module initialization
   setTimeout(() => {
     try {
       const poolInstance = getPool()
-      poolInstance.getConnection()
-        .then((connection) => {
-          console.log('✅ Database connection successful')
-          connection.release()
+      poolInstance.query('SELECT NOW()')
+        .then(() => {
+          console.log('✅ Database connection successful (PostgreSQL/NeonDB)')
         })
         .catch((error) => {
           console.error('❌ Database connection failed:', error.message)
-    console.error('')
-    if (error.code === 'ER_ACCESS_DENIED_ERROR' || error.errno === 1045) {
-      // Extract IP from error message if available
-      const ipMatch = error.message.match(/'([^']+)'@'([^']+)'/);
-      const connectingUser = ipMatch ? ipMatch[1] : 'unknown';
-      const connectingIP = ipMatch ? ipMatch[2] : 'unknown';
-      
-      console.error('⚠️  AUTHENTICATION ERROR - Access Denied')
-      console.error('')
-      console.error(`   Attempting to connect from IP: ${connectingIP}`)
-      console.error(`   Using username: ${connectingUser}`)
-      console.error('')
-      console.error('   SOLUTIONS:')
-      console.error('')
-      console.error('   1. ✅ VERIFY PASSWORD:')
-      console.error('      - Double-check your password in .env.local file')
-      console.error('      - Make sure there are no extra spaces or hidden characters')
-      console.error('      - Try resetting the MySQL password in your hosting control panel')
-      console.error('')
-      console.error('   2. ✅ CHECK IP ACCESS (for remote connections):')
-      console.error(`      - Your current IP: ${connectingIP}`)
-      console.error('      - Add this IP to MySQL Remote Access Hosts in your hosting control panel')
-      console.error('      - Go to MySQL → Remote MySQL → Add Access Host')
-      console.error('      - Or use "%" to allow all IPs (less secure)')
-      console.error('')
-      console.error('   3. ✅ FOR SHARED HOSTING (local connections):')
-      console.error('      - Use "localhost" or "127.0.0.1" as DB_HOST')
-      console.error('      - Remote connections may require IP whitelisting')
-      console.error('')
-      console.error('   4. ✅ VERIFY USERNAME:')
-      console.error('      - Make sure username is correct (case-sensitive)')
-      console.error('      - Shared hosting usernames usually have prefixes like "username_dbname"')
-      console.error('')
-      console.error('   5. ✅ CHECK USER PERMISSIONS:')
-      console.error('      - User must be assigned to the database in hosting control panel')
-      console.error('      - User must have SELECT, INSERT, UPDATE, DELETE privileges')
-      console.error('')
-      console.error('   Current config:')
-      console.error(`   - Host: ${process.env.DB_HOST || 'localhost'}`)
-      console.error(`   - User: ${process.env.DB_USER || 'root'}`)
-      console.error(`   - Database: ${process.env.DB_NAME || 'sugarbunny_stores'}`)
-      console.error(`   - Password: ${process.env.DB_PASSWORD ? '***' : 'NOT SET'}`)
-      console.error('')
-      console.error('   💡 TIP: For remote connections, you MUST add your IP to MySQL access hosts')
-      console.error('          in your hosting control panel (cPanel, phpMyAdmin, etc.)')
-    } else if (error.code === 'ER_DBACCESS_DENIED_ERROR' || error.errno === 1044) {
-      console.error('⚠️  DATABASE ACCESS DENIED - User cannot access database')
-      console.error('')
-      console.error('   This means:')
-      console.error('   - ✅ Connection to MySQL server works')
-      console.error('   - ✅ Username and password are correct')
-      console.error('   - ❌ User is NOT assigned to the database')
-      console.error('')
-      console.error('   FIX: Assign user to database in hosting control panel')
-      console.error('   1. Go to "MySQL Databases" section')
-      console.error('   2. Find "Add User To Database" or "Users" section')
-      console.error('   3. Select user: jalvirt1_sugarbunnystore')
-      console.error('   4. Select database: jalvirt1_sugarbunnystore')
-      console.error('   5. Click "Add" or "Assign"')
-      console.error('   6. Make sure user has "ALL PRIVILEGES" or at least SELECT, INSERT, UPDATE, DELETE')
-      console.error('')
-      console.error('   Current config:')
-      console.error(`   - User: ${process.env.DB_USER || 'root'}`)
-      console.error(`   - Database: ${process.env.DB_NAME || 'sugarbunny_stores'}`)
-      console.error('')
-      console.error('   💡 TIP: User and database must be explicitly linked in hosting control panel')
-    } else if (error.code === 'ECONNREFUSED') {
-      console.error('⚠️  CONNECTION REFUSED - Connection cannot be established')
-      console.error('')
-      console.error('   Common causes and fixes:')
-      console.error('   1. If connecting to REMOTE server (from your local machine):')
-      console.error('      - Use the MySQL server hostname/IP from your hosting control panel')
-      console.error('      - NOT "localhost" - use the actual remote host (e.g., mysql.yoursite.com)')
-      console.error('      - Your IP must be added to MySQL access hosts (✅ you did this)')
-      console.error('      - Check MySQL port (usually 3306)')
-      console.error('')
-      console.error('   2. If connecting to LOCAL server:')
-      console.error('      - Use "localhost" or "127.0.0.1"')
-      console.error('      - Make sure MySQL server is running')
-      console.error('')
-      console.error('   3. Check your hosting control panel for:')
-      console.error('      - MySQL hostname/IP address (might be like mysql.hostname.com)')
-      console.error('      - MySQL port number (usually 3306)')
-      console.error('')
-      console.error('   Current config:')
-      console.error(`   - Host: ${process.env.DB_HOST || 'localhost'}`)
-      console.error(`   - User: ${process.env.DB_USER || 'root'}`)
-      console.error(`   - Database: ${process.env.DB_NAME || 'sugarbunny_stores'}`)
-      console.error('')
-      console.error('   💡 TIP: For remote connections, find the MySQL hostname in your')
-      console.error('          hosting control panel (usually in MySQL/phpMyAdmin section)')
-    } else if (error.code === 'ER_CON_COUNT_ERROR' || error.errno === 1040) {
-      console.error('⚠️  TOO MANY CONNECTIONS - MySQL connection limit reached')
-      console.error('')
-      console.error('   This means the MySQL server has reached its maximum connection limit.')
-      console.error('   This is common on shared hosting (phpMyAdmin, cPanel, etc.)')
-      console.error('')
-      console.error('   SOLUTIONS:')
-      console.error('')
-      console.error('   1. Check active connections in phpMyAdmin:')
-      console.error('      - Open phpMyAdmin')
-      console.error('      - Go to "Status" → "Processes" tab')
-      console.error('      - Check how many connections are active')
-      console.error('      - Kill idle connections if needed')
-      console.error('')
-      console.error('   2. Kill idle connections via SQL in phpMyAdmin:')
-      console.error('      - Run: SHOW PROCESSLIST;')
-      console.error('      - Then: KILL <process_id>; (for idle connections)')
-      console.error('')
-      console.error('   3. Increase MySQL max_connections (if you have access):')
-      console.error('      - In phpMyAdmin SQL tab, run:')
-      console.error('        SET GLOBAL max_connections = 20;')
-      console.error('      - Note: This is usually restricted on shared hosting')
-      console.error('')
-      console.error('   4. Check for other applications using connections:')
-      console.error('      - Other websites on the same server')
-      console.error('      - phpMyAdmin sessions')
-      console.error('      - Other scripts/databases')
-      console.error('')
-      console.error('   5. Reduce connection pool in your application:')
-      console.error('      - Already set to absolute minimum (connectionLimit: 1)')
-      console.error('      - Wait a few minutes for connections to timeout')
-      console.error('      - Application will retry automatically with exponential backoff')
-      console.error('')
-      console.error('   💡 TIP: Shared hosting often limits connections to 5-10.')
-      console.error('          Try restarting your application or wait for idle connections to timeout.')
-    } else {
-      console.error('   Please check your .env.local file and ensure:')
-      console.error('   - DB_HOST, DB_USER, DB_PASSWORD, DB_NAME are set correctly')
-      console.error('   - MySQL server is running')
-      console.error('   - Database exists (or create it through your hosting control panel)')
-    }
-      })
+          console.error('')
+          console.error('⚠️  DATABASE CONNECTION ERROR')
+          console.error('')
+          console.error('   SOLUTIONS:')
+          console.error('')
+          console.error('   1. ✅ CHECK DATABASE_URL:')
+          console.error('      - Verify DATABASE_URL is set in .env.local')
+          console.error('      - Format: postgresql://user:password@host/database?sslmode=require')
+          console.error('      - Get connection string from NeonDB dashboard')
+          console.error('')
+          console.error('   2. ✅ CHECK NEONDB STATUS:')
+          console.error('      - Ensure your NeonDB project is active (not paused)')
+          console.error('      - Free tier projects auto-pause after inactivity')
+          console.error('      - Wake up project in NeonDB dashboard if needed')
+          console.error('')
+          console.error('   3. ✅ VERIFY CONNECTION STRING:')
+          console.error('      - Use pooled connection string for production')
+          console.error('      - Format should include ?sslmode=require')
+          console.error('      - Check for typos in username, password, or host')
+          console.error('')
+          console.error('   Current config:')
+          console.error(`   - DATABASE_URL: ${process.env.DATABASE_URL ? '✅ SET' : '❌ NOT SET'}`)
+          if (process.env.DATABASE_URL) {
+            try {
+              const url = new URL(process.env.DATABASE_URL)
+              console.error(`   - Host: ${url.hostname}`)
+              console.error(`   - Database: ${url.pathname.slice(1)}`)
+              console.error(`   - User: ${url.username}`)
+            } catch (e) {
+              console.error(`   - Connection string format may be invalid`)
+            }
+          }
+          console.error('')
+        })
     } catch (err) {
-      // Silently fail during initialization - errors are logged above
+      // Silently fail during initialization
     }
-  }, 100) // Small delay to not block module loading
+  }, 100)
 }
 
 // Initialize database tables automatically
 export async function initializeDatabase() {
   try {
-    const pool = getPool()
+    const poolInstance = getPool()
+    
     // Create users table
-    await pool.execute(`
+    await poolInstance.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        member_id VARCHAR(20) UNIQUE NOT NULL,
+        id SERIAL PRIMARY KEY,
+        member_id VARCHAR(20) UNIQUE,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_email (email),
-        INDEX idx_member_id (member_id)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
     `)
     
-    // Add member_id column to existing users if it doesn't exist
+    // Create index for email
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_email ON users(email)
+    `)
+    
+    // Create index for member_id
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_member_id ON users(member_id)
+    `)
+    
+    // Add member_id column if it doesn't exist
     try {
-      // Check if column exists first
-      const [columns] = await pool.execute(
-        "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'member_id'"
-      ) as any[]
-      
-      if (columns.length === 0) {
-        // Column doesn't exist, add it
-        await pool.execute(`
-          ALTER TABLE users 
-          ADD COLUMN member_id VARCHAR(20) UNIQUE
-        `)
-      }
-      
-      // Generate member IDs for existing users that don't have one
-      const [usersWithoutMemberId] = await pool.execute(
-        'SELECT id FROM users WHERE member_id IS NULL OR member_id = ""'
-      ) as any[]
-      
-      for (const user of usersWithoutMemberId) {
-        const memberId = `SB${String(user.id).padStart(6, '0')}`
-        await pool.execute(
-          'UPDATE users SET member_id = ? WHERE id = ?',
-          [memberId, user.id]
-        )
-      }
-    } catch (error: any) {
-      // Column might already exist or other error - ignore for now
-      console.log('Member ID column setup:', error.message)
+      await poolInstance.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS member_id VARCHAR(20) UNIQUE
+      `)
+    } catch (e: any) {
+      // Column might already exist
+    }
+    
+    // Generate member IDs for existing users that don't have one
+    const usersResult = await poolInstance.query(`
+      SELECT id FROM users WHERE member_id IS NULL OR member_id = ''
+    `)
+    
+    for (const user of usersResult.rows) {
+      const memberId = `SB${String(user.id).padStart(6, '0')}`
+      await poolInstance.query(
+        'UPDATE users SET member_id = $1 WHERE id = $2',
+        [memberId, user.id]
+      )
     }
 
     // Create admins table
-    await pool.execute(`
+    await poolInstance.query(`
       CREATE TABLE IF NOT EXISTS admins (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_email (email)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_admin_email ON admins(email)
     `)
 
     // Create admin sessions table
-    await pool.execute(`
+    await poolInstance.query(`
       CREATE TABLE IF NOT EXISTS admin_sessions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        admin_id INT NOT NULL,
+        id SERIAL PRIMARY KEY,
+        admin_id INTEGER NOT NULL,
         session_token VARCHAR(255) UNIQUE NOT NULL,
         expires_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE,
-        INDEX idx_session_token (session_token),
-        INDEX idx_expires_at (expires_at)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        created_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+      )
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_session_token ON admin_sessions(session_token)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_expires_at ON admin_sessions(expires_at)
     `)
 
     // Create products table
-    await pool.execute(`
+    await poolInstance.query(`
       CREATE TABLE IF NOT EXISTS products (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         product_code VARCHAR(20) UNIQUE,
         name VARCHAR(255) NOT NULL,
         description TEXT,
@@ -301,157 +302,177 @@ export async function initializeDatabase() {
         category VARCHAR(100),
         image_url VARCHAR(500),
         file_url VARCHAR(500),
-        stock INT DEFAULT 0,
+        stock INTEGER DEFAULT 0,
         is_active BOOLEAN DEFAULT TRUE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_category (category),
-        INDEX idx_is_active (is_active),
-        INDEX idx_product_code (product_code)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
     `)
     
-    // Add file_url column to existing products table if it doesn't exist
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_category ON products(category)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_is_active ON products(is_active)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_product_code ON products(product_code)
+    `)
+    
+    // Add file_url column if it doesn't exist
     try {
-      await pool.execute('ALTER TABLE products ADD COLUMN file_url VARCHAR(500)')
+      await poolInstance.query(`
+        ALTER TABLE products ADD COLUMN IF NOT EXISTS file_url VARCHAR(500)
+      `)
     } catch (e: any) {
-      if (!e.message?.includes('Duplicate column name')) {
-        console.log('Note: file_url column may already exist')
-      }
+      // Column might already exist
     }
     
-    // Add product_code column to existing products if it doesn't exist
+    // Add product_code column if it doesn't exist
     try {
-      // Check if column exists first
-      const [columns] = await pool.execute(
-        "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products' AND COLUMN_NAME = 'product_code'"
-      ) as any[]
-      
-      if (columns.length === 0) {
-        // Column doesn't exist, add it
-        await pool.execute(`
-          ALTER TABLE products 
-          ADD COLUMN product_code VARCHAR(20) UNIQUE
-        `)
-      }
-      
-      // Generate product codes for existing products that don't have one
-      const [productsWithoutCode] = await pool.execute(
-        'SELECT id FROM products WHERE product_code IS NULL OR product_code = ""'
-      ) as any[]
-      
-      for (const product of productsWithoutCode) {
-        const productCode = `PD${String(product.id).padStart(6, '0')}`
-        await pool.execute(
-          'UPDATE products SET product_code = ? WHERE id = ?',
-          [productCode, product.id]
-        )
-      }
-    } catch (error: any) {
-      // Column might already exist or other error - ignore for now
-      console.log('Product code column setup:', error.message)
+      await poolInstance.query(`
+        ALTER TABLE products ADD COLUMN IF NOT EXISTS product_code VARCHAR(20) UNIQUE
+      `)
+    } catch (e: any) {
+      // Column might already exist
+    }
+    
+    // Generate product codes for existing products
+    const productsResult = await poolInstance.query(`
+      SELECT id FROM products WHERE product_code IS NULL OR product_code = ''
+    `)
+    
+    for (const product of productsResult.rows) {
+      const productCode = `PD${String(product.id).padStart(6, '0')}`
+      await poolInstance.query(
+        'UPDATE products SET product_code = $1 WHERE id = $2',
+        [productCode, product.id]
+      )
     }
 
     // Create redeem_codes table
-    await pool.execute(`
+    await poolInstance.query(`
       CREATE TABLE IF NOT EXISTS redeem_codes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        code VARCHAR(50) UNIQUE NOT NULL,
-        product_id INT,
+        id SERIAL PRIMARY KEY,
+        code VARCHAR(100) UNIQUE NOT NULL,
+        product_id INTEGER,
         discount_percent DECIMAL(5, 2) DEFAULT 0,
         discount_amount DECIMAL(10, 2) DEFAULT 0,
-        max_uses INT DEFAULT 1,
-        used_count INT DEFAULT 0,
-        expires_at TIMESTAMP NULL,
+        max_uses INTEGER DEFAULT 1,
+        used_count INTEGER DEFAULT 0,
+        expires_at TIMESTAMP,
         is_active BOOLEAN DEFAULT TRUE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
-        INDEX idx_code (code),
-        INDEX idx_is_active (is_active)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+      )
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_code ON redeem_codes(code)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_is_active ON redeem_codes(is_active)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_expires_at ON redeem_codes(expires_at)
     `)
 
     // Create reviews table
-    await pool.execute(`
+    await poolInstance.query(`
       CREATE TABLE IF NOT EXISTS reviews (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        product_id INT NOT NULL,
-        user_id INT NOT NULL,
-        rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        id SERIAL PRIMARY KEY,
+        product_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
         comment TEXT,
         is_approved BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
         FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        INDEX idx_product_id (product_id),
-        INDEX idx_user_id (user_id),
-        INDEX idx_is_approved (is_approved)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_product_id ON reviews(product_id)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_user_id ON reviews(user_id)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_is_approved ON reviews(is_approved)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_rating ON reviews(rating)
     `)
 
     // Create orders table
-    await pool.execute(`
+    await poolInstance.query(`
       CREATE TABLE IF NOT EXISTS orders (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         customer_name VARCHAR(255) NOT NULL,
         customer_email VARCHAR(255) NOT NULL,
         customer_phone VARCHAR(50),
         total DECIMAL(10, 2) NOT NULL,
         status VARCHAR(50) DEFAULT 'pending',
         payment_method VARCHAR(50) DEFAULT 'wise',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        INDEX idx_status (status),
-        INDEX idx_customer_email (customer_email),
-        INDEX idx_payment_method (payment_method)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
     `)
     
-    // Add payment_method column to existing orders table if it doesn't exist
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_status ON orders(status)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_customer_email ON orders(customer_email)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_payment_method ON orders(payment_method)
+    `)
+    
+    // Add payment_method column if it doesn't exist
     try {
-      await pool.execute('ALTER TABLE orders ADD COLUMN payment_method VARCHAR(50) DEFAULT "wise"')
+      await poolInstance.query(`
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'wise'
+      `)
     } catch (e: any) {
       // Column might already exist
-      if (!e.message?.includes('Duplicate column name')) {
-        console.log('Note: payment_method column may already exist')
-      }
-    }
-
-    // Reset order ID auto-increment to start from 1 if table is empty
-    // This ensures order IDs start from 1 when database is recreated or cleared
-    try {
-      const [orderCount] = await pool.execute('SELECT COUNT(*) as count FROM orders') as any[]
-      if (orderCount.length > 0 && orderCount[0].count === 0) {
-        await pool.execute('ALTER TABLE orders AUTO_INCREMENT = 1')
-        console.log('✓ Orders auto-increment reset to 1')
-      }
-    } catch (e: any) {
-      // Ignore errors if table doesn't exist or other issues
-      // This is normal if the table was just created
     }
 
     // Create order_items table
-    await pool.execute(`
+    await poolInstance.query(`
       CREATE TABLE IF NOT EXISTS order_items (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        order_id INT NOT NULL,
-        product_id INT NOT NULL,
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL,
         product_name VARCHAR(255) NOT NULL,
-        quantity INT NOT NULL,
+        quantity INTEGER NOT NULL,
         price DECIMAL(10, 2) NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-        INDEX idx_order_id (order_id)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        created_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+      )
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_order_id ON order_items(order_id)
     `)
 
     // Create payments table
-    await pool.execute(`
+    await poolInstance.query(`
       CREATE TABLE IF NOT EXISTS payments (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        order_id INT NOT NULL,
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER NOT NULL,
         payment_method VARCHAR(50) DEFAULT 'wise',
         mtcn_no VARCHAR(100),
         sender_name VARCHAR(255),
@@ -467,49 +488,56 @@ export async function initializeDatabase() {
         stripe_payment_intent_id VARCHAR(255),
         stripe_checkout_session_id VARCHAR(255),
         status VARCHAR(50) DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-        INDEX idx_order_id (order_id),
-        INDEX idx_mtcn_no (mtcn_no),
-        INDEX idx_status (status),
-        INDEX idx_payment_method (payment_method)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        created_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+      )
     `)
     
-    // Add new columns to existing payments table if they don't exist
-    try {
-      await pool.execute('ALTER TABLE payments ADD COLUMN payment_method VARCHAR(50) DEFAULT "stripe"')
-    } catch (e: any) {
-      if (!e.message?.includes('Duplicate column name')) {
-        console.log('Note: payment_method column may already exist')
-      }
-    }
-    try {
-      await pool.execute('ALTER TABLE payments MODIFY COLUMN mtcn_no VARCHAR(100)')
-      await pool.execute('ALTER TABLE payments MODIFY COLUMN sender_name VARCHAR(255)')
-      await pool.execute('ALTER TABLE payments MODIFY COLUMN transaction_date DATE')
-    } catch (e: any) {
-      // Columns might already be modified
-    }
-    try {
-      await pool.execute('ALTER TABLE payments ADD COLUMN payer_first_name VARCHAR(255)')
-      await pool.execute('ALTER TABLE payments ADD COLUMN payer_last_name VARCHAR(255)')
-      await pool.execute('ALTER TABLE payments ADD COLUMN payer_phone VARCHAR(50)')
-      await pool.execute('ALTER TABLE payments ADD COLUMN payer_address TEXT')
-      await pool.execute('ALTER TABLE payments ADD COLUMN payer_city VARCHAR(100)')
-      await pool.execute('ALTER TABLE payments ADD COLUMN payer_country VARCHAR(100)')
-      await pool.execute('ALTER TABLE payments ADD COLUMN stripe_payment_intent_id VARCHAR(255)')
-      await pool.execute('ALTER TABLE payments ADD COLUMN stripe_checkout_session_id VARCHAR(255)')
-    } catch (e: any) {
-      if (!e.message?.includes('Duplicate column name')) {
-        console.log('Note: Some payment columns may already exist')
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_order_id ON payments(order_id)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_mtcn_no ON payments(mtcn_no)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_status ON payments(status)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_payment_method ON payments(payment_method)
+    `)
+    
+    // Add payment columns if they don't exist
+    const paymentColumns = [
+      'payment_method', 'mtcn_no', 'sender_name', 'transaction_date',
+      'payer_first_name', 'payer_last_name', 'payer_phone', 'payer_address',
+      'payer_city', 'payer_country', 'stripe_payment_intent_id', 'stripe_checkout_session_id'
+    ]
+    
+    for (const col of paymentColumns) {
+      try {
+        const colType = col === 'transaction_date' ? 'DATE' :
+                       col.includes('stripe') ? 'VARCHAR(255)' :
+                       col === 'payer_address' ? 'TEXT' :
+                       col === 'mtcn_no' ? 'VARCHAR(100)' :
+                       col === 'payer_city' || col === 'payer_country' ? 'VARCHAR(100)' :
+                       col === 'payer_phone' ? 'VARCHAR(50)' :
+                       'VARCHAR(255)'
+        
+        await poolInstance.query(`
+          ALTER TABLE payments ADD COLUMN IF NOT EXISTS ${col} ${colType}
+        `)
+      } catch (e: any) {
+        // Column might already exist
       }
     }
 
     // Create payment_settings table
-    await pool.execute(`
+    await poolInstance.query(`
       CREATE TABLE IF NOT EXISTS payment_settings (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         wise_account_name VARCHAR(255) DEFAULT 'Zhong Jie Yong',
         wise_account_number VARCHAR(100) DEFAULT '1101402249826',
         wise_bank VARCHAR(255) DEFAULT 'Kasikorn Bank (K-Bank)',
@@ -517,15 +545,53 @@ export async function initializeDatabase() {
         western_union_name VARCHAR(255) DEFAULT 'Zhong Jie Yong',
         western_union_account_number VARCHAR(100) DEFAULT '1101402249826',
         western_union_phone VARCHAR(50) DEFAULT '098-887-0075',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `)
+
+    // Create user_sessions table
+    await poolInstance.query(`
+      CREATE TABLE IF NOT EXISTS user_sessions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        session_token VARCHAR(255) UNIQUE NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_session_token ON user_sessions(session_token)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_expires_at ON user_sessions(expires_at)
+    `)
+
+    // Create blocked_countries table
+    await poolInstance.query(`
+      CREATE TABLE IF NOT EXISTS blocked_countries (
+        id SERIAL PRIMARY KEY,
+        country_code VARCHAR(2) UNIQUE NOT NULL,
+        country_name VARCHAR(100) NOT NULL,
+        expires_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_country_code ON blocked_countries(country_code)
+    `)
+    
+    await poolInstance.query(`
+      CREATE INDEX IF NOT EXISTS idx_expires_at ON blocked_countries(expires_at)
     `)
 
     // Create default admin accounts if they don't exist
     try {
-      
-      // Default admin accounts from schema.sql
       const defaultAdmins = [
         {
           email: 'admin@sugarbunny.com',
@@ -542,48 +608,75 @@ export async function initializeDatabase() {
       ]
 
       for (const admin of defaultAdmins) {
-        const [existing] = await pool.execute(
-          'SELECT id FROM admins WHERE email = ?',
+        const existing = await poolInstance.query(
+          'SELECT id FROM admins WHERE email = $1',
           [admin.email]
-        ) as any[]
+        )
 
-        if (existing.length === 0) {
-          await pool.execute(
-            'INSERT INTO admins (email, password) VALUES (?, ?)',
+        if (existing.rows.length === 0) {
+          await poolInstance.query(
+            'INSERT INTO admins (email, password) VALUES ($1, $2)',
             [admin.email, admin.password]
           )
           console.log(`✅ Default admin account created: ${admin.email}`)
         }
       }
     } catch (adminError: any) {
-      // Silently fail admin creation - might already exist or permission issue
+      // Silently fail admin creation
       console.log('ℹ️  Skipping admin account creation (may already exist)')
+    }
+
+    // Create trigger function for updated_at (PostgreSQL doesn't support ON UPDATE)
+    await poolInstance.query(`
+      CREATE OR REPLACE FUNCTION update_updated_at_column()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.updated_at = NOW();
+        RETURN NEW;
+      END;
+      $$ language 'plpgsql';
+    `)
+
+    // Create triggers for updated_at
+    const tablesWithUpdatedAt = [
+      'users', 'admins', 'products', 'redeem_codes', 'reviews',
+      'orders', 'payment_settings', 'blocked_countries'
+    ]
+
+    for (const table of tablesWithUpdatedAt) {
+      try {
+        await poolInstance.query(`
+          DROP TRIGGER IF EXISTS update_${table}_updated_at ON ${table}
+        `)
+        await poolInstance.query(`
+          CREATE TRIGGER update_${table}_updated_at
+          BEFORE UPDATE ON ${table}
+          FOR EACH ROW
+          EXECUTE FUNCTION update_updated_at_column()
+        `)
+      } catch (e: any) {
+        // Trigger might already exist
+      }
     }
 
     console.log('✅ Database tables initialized successfully')
   } catch (error: any) {
     console.error('⚠️  Database initialization error:', error.message)
-    // Don't throw - let the app continue even if initialization fails
-    // This allows the app to start even if tables already exist or there's a permission issue
   }
 }
 
-// Auto-initialize database on startup (only in server environment, not during build)
-// Skip during build phase completely
+// Auto-initialize database on startup
 if (typeof window === 'undefined' && 
     process.env.NEXT_PHASE !== 'phase-production-build' &&
     process.env.NEXT_PHASE !== 'phase-production-server') {
-  // Only initialize if we're actually running (not building)
-  // Use setTimeout to avoid blocking module initialization
   setTimeout(() => {
     initializeDatabase().catch(() => {
       // Silent fail - initialization errors are logged above
-      // This is expected during build time when DB is not available
     })
-  }, 200) // Delay to ensure we're not in build phase
+  }, 200)
 }
 
-// Helper function to execute queries with retry logic for connection errors
+// Helper function to execute queries with retry logic
 export async function executeWithRetry<T>(
   queryFn: () => Promise<T>,
   maxRetries: number = 3,
@@ -597,28 +690,24 @@ export async function executeWithRetry<T>(
     } catch (error: any) {
       lastError = error
       
-      // Only retry on connection-related errors
+      // Retry on connection-related errors
       if (
-        error.code === 'ER_CON_COUNT_ERROR' || 
-        error.errno === 1040 ||
-        error.code === 'PROTOCOL_CONNECTION_LOST' ||
-        error.code === 'ECONNRESET'
+        error.code === 'ECONNRESET' ||
+        error.code === 'ETIMEDOUT' ||
+        error.message?.includes('connection') ||
+        error.message?.includes('timeout')
       ) {
         if (attempt < maxRetries) {
-          const delay = retryDelay * Math.pow(2, attempt - 1) // Exponential backoff
+          const delay = retryDelay * Math.pow(2, attempt - 1)
           console.log(`⚠️  Connection error (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`)
           await new Promise(resolve => setTimeout(resolve, delay))
           continue
         }
       }
       
-      // For other errors or final retry, throw immediately
       throw error
     }
   }
   
   throw lastError
 }
-
-// Pool is exported above with lazy initialization
-

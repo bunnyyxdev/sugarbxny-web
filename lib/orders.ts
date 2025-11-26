@@ -67,7 +67,7 @@ export async function createOrder(order: Order) {
       connection.release()
     }
   } catch (error: any) {
-    if (error.code === 'ER_NO_SUCH_TABLE' || error.message?.includes("doesn't exist")) {
+    if (error.code === '42P01' || error.message?.includes("does not exist") || error.message?.includes("doesn't exist")) {
       throw new Error('Database tables not initialized. Please run: npm run setup-db')
     }
     throw error
@@ -103,7 +103,7 @@ export async function getOrderById(id: number) {
     
     return order
   } catch (error: any) {
-    if (error.code === 'ER_NO_SUCH_TABLE' || error.message?.includes("doesn't exist")) {
+    if (error.code === '42P01' || error.message?.includes("does not exist") || error.message?.includes("doesn't exist")) {
       throw new Error('Database tables not initialized. Please run: npm run setup-db')
     }
     throw error
