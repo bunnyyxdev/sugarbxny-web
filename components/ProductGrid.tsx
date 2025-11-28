@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useCart } from '@/contexts/CartContext'
 import { useToast } from '@/contexts/ToastContext'
+import QuickViewModal from '@/components/QuickViewModal'
 
 interface Product {
   id: number
@@ -29,6 +30,8 @@ export default function ProductGrid({ products }: ProductGridProps) {
   const { showToast } = useToast()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -71,6 +74,19 @@ export default function ProductGrid({ products }: ProductGridProps) {
     showToast('Product added to cart!', 'success')
   }
 
+  const handleQuickView = (e: React.MouseEvent, product: Product) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setQuickViewProduct(product)
+    setIsQuickViewOpen(true)
+  }
+
+  const handleLoginRequired = () => {
+    if (quickViewProduct) {
+      router.push(`/login?redirect=/products/${quickViewProduct.id}`)
+    }
+  }
+
   if (products.length === 0) {
     return (
       <div className="text-center py-20">
@@ -95,8 +111,9 @@ export default function ProductGrid({ products }: ProductGridProps) {
   }
 
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {products.map((product) => (
+    <>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {products.map((product) => (
         <Link
           key={product.id}
           href={`/products/${product.id}`}
@@ -178,19 +195,37 @@ export default function ProductGrid({ products }: ProductGridProps) {
                     Out of Stock
                   </button>
                 )}
+                <button
+                  onClick={(e) => handleQuickView(e, product)}
+                  className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-blue-300 dark:border-blue-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-all font-medium text-sm"
+                >
+                  Quick View
+                </button>
                 <Link
                   href={`/products/${product.id}`}
                   className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-300 dark:border-pink-700 rounded-lg hover:border-pink-500 dark:hover:border-pink-500 transition-all font-medium text-sm"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  View Details →
+                  Details →
                 </Link>
               </div>
             </div>
           </div>
         </Link>
       ))}
-    </div>
+      </div>
+      
+      <QuickViewModal
+        product={quickViewProduct}
+        isOpen={isQuickViewOpen}
+        onClose={() => {
+          setIsQuickViewOpen(false)
+          setQuickViewProduct(null)
+        }}
+        isAuthenticated={isAuthenticated}
+        onLoginRequired={handleLoginRequired}
+      />
+    </>
   )
 }
 

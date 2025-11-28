@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import BlackRibbon from '@/components/BlackRibbon'
 import Toast from '@/components/Toast'
+import BackToTop from '@/components/BackToTop'
 import { Analytics } from '@vercel/analytics/react'
 import { Comic_Neue } from 'next/font/google'
 import './globals.css'
@@ -96,6 +97,7 @@ export default function RootLayout({
               </main>
               <Footer />
               <Toast />
+              <BackToTop />
             </ToastProvider>
           </CartProvider>
         </ThemeProvider>

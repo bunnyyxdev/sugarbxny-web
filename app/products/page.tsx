@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import SearchFilter from '@/components/SearchFilter'
+import ProductGrid from '@/components/ProductGrid'
 
 interface Product {
   id: number
@@ -18,7 +20,9 @@ interface Product {
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([])
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
 
   useEffect(() => {
     fetchProducts()
@@ -34,7 +38,9 @@ export default function Products() {
         throw new Error('Failed to fetch products')
       }
       const data = await response.json()
-      setProducts(data.products || [])
+      const fetchedProducts = data.products || []
+      setProducts(fetchedProducts)
+      setFilteredProducts(fetchedProducts)
     } catch (err) {
       // On error, just set empty array to show friendly message
       console.error('Error fetching products:', err)
@@ -53,6 +59,51 @@ export default function Products() {
         <p className="text-gray-600 dark:text-gray-300 mb-8">
           Browse our complete catalog of virtual products and services
         </p>
+
+        {/* View Mode Toggle */}
+        {!loading && products.length > 0 && (
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`px-4 py-2 rounded-lg transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-gradient-to-r from-pink-500 to-blue-500 text-white'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                }`}
+              >
+                <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                Grid
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`px-4 py-2 rounded-lg transition-all ${
+                  viewMode === 'table'
+                    ? 'bg-gradient-to-r from-pink-500 to-blue-500 text-white'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                }`}
+              >
+                <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                Table
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Showing {filteredProducts.length} of {products.length} products
+            </p>
+          </div>
+        )}
+
+        {/* Search and Filter */}
+        {!loading && products.length > 0 && (
+          <SearchFilter
+            products={products}
+            onFilteredProductsChange={setFilteredProducts}
+          />
+        )}
 
         {loading ? (
           <div className="text-center py-12">
@@ -77,6 +128,24 @@ export default function Products() {
               </p>
             </div>
           </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-12 max-w-2xl mx-auto">
+              <div className="mb-6">
+                <svg className="w-24 h-24 mx-auto text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+                No Products Found
+              </h2>
+              <p className="text-lg text-gray-600 dark:text-gray-300 mb-2">
+                Try adjusting your search or filter criteria.
+              </p>
+            </div>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <ProductGrid products={filteredProducts} />
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
             <div className="overflow-x-auto">
@@ -93,7 +162,7 @@ export default function Products() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {products.map((product) => (
+                  {filteredProducts.map((product) => (
                     <tr 
                       key={product.id} 
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
