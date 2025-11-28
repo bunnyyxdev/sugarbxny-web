@@ -448,13 +448,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       if (savedLang && ['th', 'en'].includes(savedLang)) {
         setLanguageState(savedLang)
       } else {
-        // Detect browser language
-        const browserLang = navigator.language.split('-')[0]
-        if (browserLang === 'th') {
-          setLanguageState('th')
-        } else {
-          setLanguageState('en')
-        }
+        // Default to English
+        setLanguageState('en')
       }
     }
   }, [])
