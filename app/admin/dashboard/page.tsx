@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/contexts/ThemeContext'
+import AdminStats from '@/components/AdminStats'
+import DashboardCharts from '@/components/DashboardCharts'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,12 +55,12 @@ interface Review {
   created_at: string
 }
 
-type Tab = 'users' | 'products' | 'orders' | 'redeem-codes' | 'reviews' | 'payments'
+type Tab = 'overview' | 'users' | 'products' | 'orders' | 'redeem-codes' | 'reviews' | 'payments'
 
 export default function AdminDashboard() {
   const router = useRouter()
   const { theme } = useTheme()
-  const [activeTab, setActiveTab] = useState<Tab>('users')
+  const [activeTab, setActiveTab] = useState<Tab>('overview')
   
   // Users state
   const [users, setUsers] = useState<User[]>([])
@@ -126,6 +128,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     checkAuth()
+    if (activeTab === 'overview') {
+      fetchUsers()
+      fetchProducts()
+      fetchOrders()
+      fetchReviews()
+    }
     if (activeTab === 'users') fetchUsers()
     if (activeTab === 'products') fetchProducts()
     if (activeTab === 'orders') fetchOrders()
@@ -612,7 +620,7 @@ export default function AdminDashboard() {
         {/* Tabs */}
         <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex space-x-1 overflow-x-auto">
-            {(['users', 'products', 'orders', 'redeem-codes', 'reviews', 'payments'] as Tab[]).map((tab) => (
+            {(['overview', 'users', 'products', 'orders', 'redeem-codes', 'reviews', 'payments'] as Tab[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -622,11 +630,165 @@ export default function AdminDashboard() {
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100'
                 }`}
               >
-                {tab === 'users' ? 'Users' : tab === 'products' ? 'Products' : tab === 'orders' ? 'Orders' : tab === 'redeem-codes' ? 'Redeem Codes' : tab === 'reviews' ? 'Reviews' : tab === 'payments' ? 'Payment Settings' : ''}
+                {tab === 'overview' ? 'Overview' : tab === 'users' ? 'Users' : tab === 'products' ? 'Products' : tab === 'orders' ? 'Orders' : tab === 'redeem-codes' ? 'Redeem Codes' : tab === 'reviews' ? 'Reviews' : tab === 'payments' ? 'Payment Settings' : ''}
               </button>
             ))}
           </div>
         </div>
+
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Stats Cards */}
+            <AdminStats
+              stats={{
+                totalUsers: users.length,
+                totalProducts: products.length,
+                totalOrders: orders.length,
+                totalRevenue: orders
+                  .filter((o: any) => o.status === 'completed' || o.status === 'paid')
+                  .reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0),
+                pendingOrders: orders.filter((o: any) => o.status === 'pending' || o.status === 'payment_pending').length,
+                activeProducts: products.filter((p: Product) => p.is_active).length,
+              }}
+            />
+
+            {/* Charts */}
+            {(() => {
+              // Generate last 7 days data
+              const last7Days = Array.from({ length: 7 }, (_, i) => {
+                const date = new Date()
+                date.setDate(date.getDate() - (6 - i))
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              })
+
+              // Revenue data (last 7 days)
+              const revenueData = last7Days.map((label) => {
+                const date = new Date(label)
+                const dayStart = new Date(date.setHours(0, 0, 0, 0))
+                const dayEnd = new Date(date.setHours(23, 59, 59, 999))
+                
+                const dayOrders = orders.filter((o: any) => {
+                  const orderDate = new Date(o.created_at)
+                  return orderDate >= dayStart && orderDate <= dayEnd && 
+                         (o.status === 'completed' || o.status === 'paid')
+                })
+                
+                return {
+                  date: label,
+                  value: dayOrders.reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0),
+                  label: label,
+                }
+              })
+
+              // Orders data (last 7 days)
+              const ordersData = last7Days.map((label) => {
+                const date = new Date(label)
+                const dayStart = new Date(date.setHours(0, 0, 0, 0))
+                const dayEnd = new Date(date.setHours(23, 59, 59, 999))
+                
+                const dayOrders = orders.filter((o: any) => {
+                  const orderDate = new Date(o.created_at)
+                  return orderDate >= dayStart && orderDate <= dayEnd
+                })
+                
+                return {
+                  date: label,
+                  value: dayOrders.length,
+                  label: label,
+                }
+              })
+
+              // Products sold data (last 7 days)
+              const productsData = last7Days.map((label) => {
+                const date = new Date(label)
+                const dayStart = new Date(date.setHours(0, 0, 0, 0))
+                const dayEnd = new Date(date.setHours(23, 59, 59, 999))
+                
+                const dayOrders = orders.filter((o: any) => {
+                  const orderDate = new Date(o.created_at)
+                  return orderDate >= dayStart && orderDate <= dayEnd && 
+                         (o.status === 'completed' || o.status === 'paid')
+                })
+                
+                const totalItems = dayOrders.reduce((sum: number, o: any) => {
+                  if (o.items && Array.isArray(o.items)) {
+                    return sum + o.items.reduce((itemSum: number, item: any) => itemSum + (item.quantity || 1), 0)
+                  }
+                  return sum
+                }, 0)
+                
+                return {
+                  date: label,
+                  value: totalItems,
+                  label: label,
+                }
+              })
+
+              return (
+                <DashboardCharts
+                  revenueData={revenueData}
+                  ordersData={ordersData}
+                  productsData={productsData}
+                />
+              )
+            })()}
+
+            {/* Recent Activity */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+              <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Recent Orders</h2>
+              {ordersLoading ? (
+                <div className="text-center text-gray-500 dark:text-gray-400 py-8">Loading...</div>
+              ) : orders.length === 0 ? (
+                <div className="text-center text-gray-500 dark:text-gray-400 py-8">No orders yet</div>
+              ) : (
+                <div className="space-y-3">
+                  {orders.slice(0, 5).map((order: any) => (
+                    <div
+                      key={order.id}
+                      className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">#{order.id}</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{order.customer_name}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            order.status === 'completed' || order.status === 'paid'
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                              : order.status === 'pending' || order.status === 'payment_pending'
+                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                          }`}>
+                            {order.status.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {new Date(order.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">
+                          ฿{(Number(order.total) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {order.items && Array.isArray(order.items) ? order.items.length : 0} items
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {orders.length > 5 && (
+                    <button
+                      onClick={() => setActiveTab('orders')}
+                      className="w-full py-2 text-center text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors"
+                    >
+                      View All Orders →
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Reset Password Modal */}
         {selectedUser && (
