@@ -4,6 +4,7 @@ import { CartProvider } from '@/contexts/CartContext'
 import { ToastProvider } from '@/contexts/ToastContext'
 import { WishlistProvider } from '@/contexts/WishlistContext'
 import { RecentlyViewedProvider } from '@/contexts/RecentlyViewedContext'
+import { LanguageProvider } from '@/contexts/LanguageContext'
 import TopBar from '@/components/TopBar'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -94,11 +95,12 @@ export default function RootLayout({
       <body className={`${comicNeue.className} flex flex-col min-h-screen`}>
         <StructuredData type="organization" />
         <ThemeProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <RecentlyViewedProvider>
-                <ToastProvider>
-                  <ErrorBoundary>
+          <LanguageProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <RecentlyViewedProvider>
+                  <ToastProvider>
+                    <ErrorBoundary>
                     <div className="relative">
                       <BlackRibbon />
                       <TopBar />
@@ -110,11 +112,12 @@ export default function RootLayout({
                     <Footer />
                     <Toast />
                     <BackToTop />
-                  </ErrorBoundary>
-                </ToastProvider>
-              </RecentlyViewedProvider>
-            </WishlistProvider>
-          </CartProvider>
+                    </ErrorBoundary>
+                  </ToastProvider>
+                </RecentlyViewedProvider>
+              </WishlistProvider>
+            </CartProvider>
+          </LanguageProvider>
         </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

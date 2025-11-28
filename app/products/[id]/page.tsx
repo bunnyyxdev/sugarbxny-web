@@ -12,6 +12,7 @@ import ProductShare from '@/components/ProductShare'
 import StructuredData from '@/components/StructuredData'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import RelatedProducts from '@/components/RelatedProducts'
+import StockNotification from '@/components/StockNotification'
 
 export const dynamic = 'force-dynamic'
 
@@ -246,6 +247,12 @@ export default function ProductDetail() {
                 >
                   Redeem with Code
                 </Link>
+                {product.stock <= 0 && (
+                  <StockNotification
+                    productId={product.id}
+                    productName={product.name}
+                  />
+                )}
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                   <ProductShare
                     productId={product.id}
