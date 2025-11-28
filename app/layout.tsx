@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { CartProvider } from '@/contexts/CartContext'
 import { ToastProvider } from '@/contexts/ToastContext'
+import { WishlistProvider } from '@/contexts/WishlistContext'
+import { RecentlyViewedProvider } from '@/contexts/RecentlyViewedContext'
 import TopBar from '@/components/TopBar'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -90,19 +92,23 @@ export default function RootLayout({
       <body className={`${comicNeue.className} flex flex-col min-h-screen`}>
         <ThemeProvider>
           <CartProvider>
-            <ToastProvider>
-              <div className="relative">
-                <BlackRibbon />
-                <TopBar />
-              </div>
-              <Navbar />
-              <main className="flex-grow">
-                {children}
-              </main>
-              <Footer />
-              <Toast />
-              <BackToTop />
-            </ToastProvider>
+            <WishlistProvider>
+              <RecentlyViewedProvider>
+                <ToastProvider>
+                  <div className="relative">
+                    <BlackRibbon />
+                    <TopBar />
+                  </div>
+                  <Navbar />
+                  <main className="flex-grow">
+                    {children}
+                  </main>
+                  <Footer />
+                  <Toast />
+                  <BackToTop />
+                </ToastProvider>
+              </RecentlyViewedProvider>
+            </WishlistProvider>
           </CartProvider>
         </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}

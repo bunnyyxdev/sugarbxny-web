@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import SearchFilter from '@/components/SearchFilter'
 import ProductGrid from '@/components/ProductGrid'
+import LoadingSkeleton from '@/components/LoadingSkeleton'
 
 interface Product {
   id: number
@@ -106,9 +107,7 @@ export default function Products() {
         )}
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="text-gray-500 dark:text-gray-400">Loading products...</div>
-          </div>
+          <LoadingSkeleton type="product-grid" count={6} />
         ) : products.length === 0 ? (
           <div className="text-center py-20">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-12 max-w-2xl mx-auto">

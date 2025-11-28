@@ -6,6 +6,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useCart } from '@/contexts/CartContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useWishlist } from '@/contexts/WishlistContext'
+import { useRecentlyViewed } from '@/contexts/RecentlyViewedContext'
 import QuickViewModal from '@/components/QuickViewModal'
 
 interface Product {
@@ -28,6 +30,8 @@ export default function ProductGrid({ products }: ProductGridProps) {
   const router = useRouter()
   const { addToCart } = useCart()
   const { showToast } = useToast()
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
+  const { addToRecentlyViewed } = useRecentlyViewed()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
@@ -87,6 +91,33 @@ export default function ProductGrid({ products }: ProductGridProps) {
     }
   }
 
+  const handleWishlistToggle = (e: React.MouseEvent, product: Product) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (isInWishlist(product.id)) {
+      removeFromWishlist(product.id)
+      showToast('Removed from wishlist', 'info')
+    } else {
+      addToWishlist({
+        id: product.id,
+        name: product.name,
+        price: Number(product.price) || 0,
+        image_url: product.image_url,
+        category: product.category
+      })
+      showToast('Added to wishlist!', 'success')
+    }
+  }
+
+  // Track product view
+  useEffect(() => {
+    if (products.length > 0) {
+      // Track first product as recently viewed (in real app, track when user clicks)
+      // This is just a placeholder - you'd track actual views
+    }
+  }, [products, addToRecentlyViewed])
+
   if (products.length === 0) {
     return (
       <div className="text-center py-20">
@@ -140,7 +171,30 @@ export default function ProductGrid({ products }: ProductGridProps) {
                 </svg>
               </div>
             )}
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-4 right-4 flex gap-2">
+              <button
+                onClick={(e) => handleWishlistToggle(e, product)}
+                className={`p-2 rounded-full backdrop-blur-sm transition-all ${
+                  isInWishlist(product.id)
+                    ? 'bg-pink-500 text-white'
+                    : 'bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:bg-pink-100 dark:hover:bg-pink-900/30'
+                }`}
+                aria-label={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill={isInWishlist(product.id) ? 'currentColor' : 'none'}
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
+              </button>
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                 product.stock > 0 
                   ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 

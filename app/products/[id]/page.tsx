@@ -6,6 +6,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useCart } from '@/contexts/CartContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useRecentlyViewed } from '@/contexts/RecentlyViewedContext'
+import RecentlyViewed from '@/components/RecentlyViewed'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +28,7 @@ export default function ProductDetail() {
   const router = useRouter()
   const { addToCart } = useCart()
   const { showToast } = useToast()
+  const { addToRecentlyViewed } = useRecentlyViewed()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -65,6 +68,14 @@ export default function ProductDetail() {
       const data = await response.json()
       if (data.product) {
         setProduct(data.product)
+        // Track as recently viewed
+        addToRecentlyViewed({
+          id: data.product.id,
+          name: data.product.name,
+          price: Number(data.product.price) || 0,
+          image_url: data.product.image_url,
+          category: data.product.category
+        })
       } else {
         setError('Product not found')
       }
@@ -236,6 +247,8 @@ export default function ProductDetail() {
             </div>
           </div>
         </div>
+        
+        <RecentlyViewed limit={6} />
       </div>
     </div>
   )
