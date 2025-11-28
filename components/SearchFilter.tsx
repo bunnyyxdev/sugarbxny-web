@@ -76,7 +76,9 @@ export default function SearchFilter({ products, onFilteredProductsChange }: Sea
           return (Number(b.price) || 0) - (Number(a.price) || 0)
         case 'newest':
         default:
-          return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
+          const aDate = a.created_at ? new Date(a.created_at).getTime() : 0
+          const bDate = b.created_at ? new Date(b.created_at).getTime() : 0
+          return bDate - aDate
       }
     })
 

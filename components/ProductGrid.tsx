@@ -17,7 +17,7 @@ interface Product {
   image_url?: string
   stock: number
   is_active: boolean
-  created_at: string
+  created_at?: string
 }
 
 interface ProductGridProps {
