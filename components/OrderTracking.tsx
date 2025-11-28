@@ -1,6 +1,5 @@
 'use client'
 
-import { useLanguage } from '@/contexts/LanguageContext'
 
 interface OrderStatus {
   status: string
@@ -16,14 +15,12 @@ interface OrderTrackingProps {
 }
 
 export default function OrderTracking({ orderId, status, createdAt, updatedAt }: OrderTrackingProps) {
-  const { t } = useLanguage()
-
   const getStatusSteps = (): OrderStatus[] => {
     const steps: OrderStatus[] = [
       {
         status: 'pending',
         timestamp: createdAt,
-        description: t('order.pending')
+        description: 'Pending'
       }
     ]
 
@@ -31,7 +28,7 @@ export default function OrderTracking({ orderId, status, createdAt, updatedAt }:
       steps.push({
         status: 'processing',
         timestamp: updatedAt || createdAt,
-        description: t('order.processing')
+        description: 'Processing'
       })
     }
 
@@ -39,7 +36,7 @@ export default function OrderTracking({ orderId, status, createdAt, updatedAt }:
       steps.push({
         status: 'shipped',
         timestamp: updatedAt || createdAt,
-        description: t('order.shipped')
+        description: 'Shipped'
       })
     }
 
@@ -47,7 +44,7 @@ export default function OrderTracking({ orderId, status, createdAt, updatedAt }:
       steps.push({
         status: 'delivered',
         timestamp: updatedAt || createdAt,
-        description: t('order.delivered')
+        description: 'Delivered'
       })
     }
 
@@ -55,7 +52,7 @@ export default function OrderTracking({ orderId, status, createdAt, updatedAt }:
       steps.push({
         status: 'cancelled',
         timestamp: updatedAt || createdAt,
-        description: t('order.cancelled')
+        description: 'Cancelled'
       })
     }
 
@@ -107,7 +104,7 @@ export default function OrderTracking({ orderId, status, createdAt, updatedAt }:
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
       <h3 className="text-xl font-display font-bold mb-6 text-gray-900 dark:text-gray-100">
-        {t('order.timeline')}
+        Order Timeline
       </h3>
       <div className="space-y-4">
         {steps.map((step, index) => (

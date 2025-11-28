@@ -3,7 +3,6 @@
 import { useWishlist } from '@/contexts/WishlistContext'
 import { useCart } from '@/contexts/CartContext'
 import { useToast } from '@/contexts/ToastContext'
-import { useLanguage } from '@/contexts/LanguageContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -13,7 +12,6 @@ export default function Wishlist() {
   const { items, removeFromWishlist, clearWishlist } = useWishlist()
   const { addToCart } = useCart()
   const { showToast } = useToast()
-  const { t } = useLanguage()
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
@@ -44,18 +42,18 @@ export default function Wishlist() {
       image_url: product.image_url,
       category: product.category
     })
-    showToast(t('products.addedToCart'), 'success')
+    showToast('Product added to cart!', 'success')
   }
 
   const handleRemove = (id: number) => {
     removeFromWishlist(id)
-    showToast(t('products.removedFromWishlist'), 'info')
+    showToast('Removed from wishlist', 'info')
   }
 
   const handleClearAll = () => {
-    if (confirm(t('wishlist.clearAllConfirm'))) {
+    if (confirm('Are you sure you want to clear all items from your wishlist?')) {
       clearWishlist()
-      showToast(t('wishlist.cleared'), 'info')
+      showToast('Wishlist cleared', 'info')
     }
   }
 
@@ -65,10 +63,10 @@ export default function Wishlist() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl md:text-5xl font-display font-bold mb-2 bg-gradient-to-r from-pink-600 to-blue-600 bg-clip-text text-transparent">
-              {t('wishlist.title')}
+              My Wishlist
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
-              {items.length} {items.length === 1 ? t('common.item') : t('common.items')} {t('wishlist.itemsSaved')}
+              {items.length} {items.length === 1 ? 'item' : 'items'} saved
             </p>
           </div>
           {items.length > 0 && (
@@ -76,7 +74,7 @@ export default function Wishlist() {
               onClick={handleClearAll}
               className="px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-medium"
             >
-              {t('wishlist.clearAll')}
+              Clear All
             </button>
           )}
         </div>
@@ -90,16 +88,16 @@ export default function Wishlist() {
                 </svg>
               </div>
               <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-                {t('wishlist.empty')}
+                Your Wishlist is Empty
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                {t('wishlist.emptyDesc')}
+                Start adding products you love to your wishlist!
               </p>
               <Link
                 href="/products"
                 className="inline-block px-6 py-3 bg-gradient-to-r from-pink-500 to-blue-500 text-white rounded-lg hover:from-pink-600 hover:to-blue-600 transition-all font-semibold shadow-lg"
               >
-                {t('cart.browseProducts')}
+                Browse Products
               </Link>
             </div>
           </div>
@@ -158,7 +156,7 @@ export default function Wishlist() {
                         ฿{((Number(product.price) || 0) * 1.07).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                        {t('common.inclVat')}
+                        (incl. VAT)
                       </span>
                     </div>
                   </div>
@@ -167,13 +165,13 @@ export default function Wishlist() {
                       onClick={() => handleAddToCart(product)}
                       className="flex-1 px-4 py-2 bg-gradient-to-r from-pink-500 to-blue-500 text-white rounded-lg hover:from-pink-600 hover:to-blue-600 transition-all font-medium text-sm"
                     >
-                      {t('common.addToCart')}
+                      Add to Cart
                     </button>
                     <Link
                       href={`/products/${product.id}`}
                       className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-300 dark:border-pink-700 rounded-lg hover:border-pink-500 dark:hover:border-pink-500 transition-all font-medium text-sm"
                     >
-                      {t('wishlist.view')}
+                      View
                     </Link>
                   </div>
                 </div>

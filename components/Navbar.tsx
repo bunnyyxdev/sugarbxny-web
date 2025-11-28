@@ -6,7 +6,6 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { useCart } from '@/contexts/CartContext'
 import { useWishlist } from '@/contexts/WishlistContext'
 import { usePathname } from 'next/navigation'
-import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -16,7 +15,6 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme()
   const { getItemCount } = useCart()
   const { getItemCount: getWishlistCount } = useWishlist()
-  const { t } = useLanguage()
   const pathname = usePathname()
   const cartCount = getItemCount()
   const wishlistCount = getWishlistCount()
@@ -136,7 +134,7 @@ export default function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <Link href="/" className="text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors font-medium">
-              {t('nav.home')}
+              Home
             </Link>
             <Link href="/virtual-airlines" className="text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors font-medium">
               Virtual Airlines
@@ -162,7 +160,7 @@ export default function Navbar() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                {t('nav.admin')}
+                Admin
               </Link>
             )}
             {isUser ? (
@@ -174,13 +172,13 @@ export default function Navbar() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  {t('nav.dashboard')}
+                  Dashboard
                 </Link>
                 <button
                   onClick={handleLogout}
                   className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors font-medium"
                 >
-                  {t('nav.logout')}
+                  Logout
                 </button>
               </>
             ) : (
@@ -189,13 +187,13 @@ export default function Navbar() {
                   href="/login" 
                   className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors font-medium"
                 >
-                  {t('nav.login')}
+                  Login
                 </Link>
                 <Link 
                   href="/register" 
                   className="px-6 py-2 bg-gradient-to-r from-pink-500 to-blue-500 text-white rounded-lg hover:from-pink-600 hover:to-blue-600 transition-all font-medium shadow-md"
                 >
-                  {t('nav.register')}
+                  Register
                 </Link>
               </>
             )}
@@ -265,7 +263,7 @@ export default function Navbar() {
           <div className="md:hidden pb-4">
             <div className="flex flex-col space-y-3">
               <Link href="/" className="text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors font-medium py-2">
-                {t('nav.home')}
+                Home
               </Link>
               <Link href="/virtual-airlines" className="text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors font-medium py-2">
                 Virtual Airlines
@@ -288,7 +286,7 @@ export default function Navbar() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
-                    {t('nav.admin')} {t('nav.dashboard')}
+                    Admin Dashboard
                   </Link>
                 )}
                 {isUser ? (
@@ -300,13 +298,13 @@ export default function Navbar() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      {t('nav.dashboard')}
+                      Dashboard
                     </Link>
                     <button
                       onClick={handleLogout}
                       className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors font-medium text-center"
                     >
-                      {t('nav.logout')}
+                      Logout
                     </button>
                   </>
                 ) : (
@@ -315,13 +313,13 @@ export default function Navbar() {
                       href="/login" 
                       className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors font-medium text-center"
                     >
-                      {t('nav.login')}
+                      Login
                     </Link>
                     <Link 
                       href="/register" 
                       className="px-4 py-2 bg-gradient-to-r from-pink-500 to-blue-500 text-white rounded-lg hover:from-pink-600 hover:to-blue-600 transition-all font-medium text-center shadow-md"
                     >
-                      {t('nav.register')}
+                      Register
                     </Link>
                   </>
                 )}
@@ -332,7 +330,7 @@ export default function Navbar() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
-                  {t('nav.wishlist')} {wishlistCount > 0 && `(${wishlistCount})`}
+                  Wishlist {wishlistCount > 0 && `(${wishlistCount})`}
                 </Link>
                 <Link
                   href="/cart"
@@ -341,7 +339,7 @@ export default function Navbar() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
-                  {t('nav.cart')} {cartCount > 0 && `(${cartCount})`}
+                  Cart {cartCount > 0 && `(${cartCount})`}
                 </Link>
                 <button
                   onClick={toggleTheme}

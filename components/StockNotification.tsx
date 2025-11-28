@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useToast } from '@/contexts/ToastContext'
-import { useLanguage } from '@/contexts/LanguageContext'
 
 interface StockNotificationProps {
   productId: number
@@ -14,7 +13,6 @@ export default function StockNotification({ productId, productName }: StockNotif
   const [loading, setLoading] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
   const { showToast } = useToast()
-  const { t } = useLanguage()
 
   const checkSubscription = () => {
     if (typeof window !== 'undefined') {
@@ -32,7 +30,7 @@ export default function StockNotification({ productId, productName }: StockNotif
     e.preventDefault()
 
     if (!email) {
-      showToast(t('stock.email') + ' is required', 'error')
+      showToast('Email Address is required', 'error')
       return
     }
 
@@ -52,7 +50,7 @@ export default function StockNotification({ productId, productName }: StockNotif
       // Check if already subscribed
       if (subscriptions.some((sub: { productId: number; email: string }) => 
         sub.productId === productId && sub.email === email)) {
-        showToast(t('stock.alreadyNotified'), 'info')
+        showToast('You are already subscribed to notifications for this product', 'info')
         setSubscribed(true)
         return
       }
@@ -65,7 +63,7 @@ export default function StockNotification({ productId, productName }: StockNotif
       })
 
       localStorage.setItem('stockNotifications', JSON.stringify(subscriptions))
-      showToast(t('stock.notifySuccess'), 'success')
+      showToast('You will be notified when this product is back in stock', 'success')
       setSubscribed(true)
       setEmail('')
     } catch (error) {
@@ -83,7 +81,7 @@ export default function StockNotification({ productId, productName }: StockNotif
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p className="text-sm text-green-800 dark:text-green-300">
-            {t('stock.alreadyNotified')}
+            You are already subscribed to notifications for this product
           </p>
         </div>
       </div>
@@ -93,14 +91,14 @@ export default function StockNotification({ productId, productName }: StockNotif
   return (
     <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-        {t('stock.notifyMe')}
+        Notify Me When Available
       </h3>
       <form onSubmit={handleSubscribe} className="flex gap-2">
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder={t('stock.email')}
+          placeholder="Email Address"
           className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
           disabled={loading}
         />
@@ -109,7 +107,7 @@ export default function StockNotification({ productId, productName }: StockNotif
           disabled={loading}
           className="px-4 py-2 bg-gradient-to-r from-pink-500 to-blue-500 text-white rounded-lg hover:from-pink-600 hover:to-blue-600 transition-all font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? '...' : t('stock.subscribe')}
+          {loading ? '...' : 'Subscribe'}
         </button>
       </form>
     </div>

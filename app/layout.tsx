@@ -4,8 +4,6 @@ import { CartProvider } from '@/contexts/CartContext'
 import { ToastProvider } from '@/contexts/ToastContext'
 import { WishlistProvider } from '@/contexts/WishlistContext'
 import { RecentlyViewedProvider } from '@/contexts/RecentlyViewedContext'
-import { LanguageProvider } from '@/contexts/LanguageContext'
-import LanguageUpdater from '@/components/LanguageUpdater'
 import TopBar from '@/components/TopBar'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -96,9 +94,7 @@ export default function RootLayout({
       <body className={`${comicNeue.className} flex flex-col min-h-screen`}>
         <StructuredData type="organization" />
         <ThemeProvider>
-          <LanguageProvider>
-            <LanguageUpdater />
-            <CartProvider>
+          <CartProvider>
               <WishlistProvider>
                 <RecentlyViewedProvider>
                   <ToastProvider>
@@ -119,7 +115,6 @@ export default function RootLayout({
                 </RecentlyViewedProvider>
               </WishlistProvider>
             </CartProvider>
-          </LanguageProvider>
         </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
