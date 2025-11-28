@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCart } from '@/contexts/CartContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export const dynamic = 'force-dynamic'
 
 export default function Cart() {
   const router = useRouter()
   const { items, removeFromCart, updateQuantity, getSubtotal, getVAT, getTotal, clearCart } = useCart()
+  const { t } = useLanguage()
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
@@ -51,7 +53,7 @@ export default function Cart() {
     return (
       <div className="py-12 bg-gradient-to-br from-pink-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 min-h-screen">
         <div className="container mx-auto px-4 text-center">
-          <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+          <div className="text-gray-500 dark:text-gray-400">{t('common.loading')}</div>
         </div>
       </div>
     )
@@ -61,10 +63,10 @@ export default function Cart() {
     <div className="py-12 bg-gradient-to-br from-pink-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 min-h-screen">
       <div className="container mx-auto px-4">
         <h1 className="text-4xl md:text-5xl font-display font-bold mb-2 bg-gradient-to-r from-pink-600 to-blue-600 dark:from-pink-400 dark:to-blue-400 bg-clip-text text-transparent">
-          Shopping Cart
+          {t('cart.title')}
         </h1>
         <p className="text-gray-600 dark:text-gray-300 mb-8">
-          Review your items and proceed to checkout
+          {t('cart.reviewItems')}
         </p>
 
         {items.length === 0 ? (
@@ -76,16 +78,16 @@ export default function Cart() {
                 </svg>
               </div>
               <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-                Your Cart is Empty
+                {t('cart.emptyTitle')}
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                Start shopping to add items to your cart!
+                {t('cart.emptyDesc')}
               </p>
               <Link
                 href="/products"
                 className="inline-block px-6 py-3 bg-gradient-to-r from-pink-500 to-blue-500 text-white rounded-lg hover:from-pink-600 hover:to-blue-600 transition-all font-semibold shadow-md"
               >
-                Browse Products
+                {t('cart.browseProducts')}
               </Link>
             </div>
           </div>
@@ -132,7 +134,7 @@ export default function Cart() {
                             ฿{(Number(item.price) * item.quantity || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            ฿{(Number(item.price) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} each
+                            ฿{(Number(item.price) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('cart.each')}
                           </p>
                         </div>
                         <button
@@ -145,7 +147,7 @@ export default function Cart() {
                         </button>
                       </div>
                       <div className="mt-4 flex items-center gap-3">
-                        <label className="text-sm text-gray-700 dark:text-gray-300">Quantity:</label>
+                        <label className="text-sm text-gray-700 dark:text-gray-300">{t('cart.quantity')}:</label>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity - 1)}
@@ -174,20 +176,20 @@ export default function Cart() {
             <div className="md:col-span-1">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 sticky top-4">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-                  Order Summary
+                  {t('cart.orderSummary')}
                 </h2>
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>Subtotal ({items.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
+                    <span>{t('cart.subtotal')} ({items.reduce((sum, item) => sum + item.quantity, 0)} {t('cart.items')})</span>
                     <span>฿{subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>VAT (7%)</span>
+                    <span>{t('cart.vat')}</span>
                     <span>฿{vat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                     <div className="flex justify-between text-xl font-bold text-gray-900 dark:text-gray-100">
-                      <span>Total</span>
+                      <span>{t('cart.total')}</span>
                       <span>฿{total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   </div>
@@ -197,13 +199,13 @@ export default function Cart() {
                   disabled={isCheckingOut || items.length === 0}
                   className="w-full px-6 py-3 bg-gradient-to-r from-pink-500 to-blue-500 text-white rounded-lg hover:from-pink-600 hover:to-blue-600 transition-all font-semibold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isCheckingOut ? 'Processing...' : 'Proceed to Checkout'}
+                  {isCheckingOut ? t('cart.processing') : t('cart.proceedToCheckout')}
                 </button>
                 <Link
                   href="/products"
                   className="block w-full mt-4 text-center px-6 py-3 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-2 border-pink-300 dark:border-pink-700 rounded-lg hover:border-pink-500 dark:hover:border-pink-500 transition-all font-semibold"
                 >
-                  Continue Shopping
+                  {t('cart.continueShopping')}
                 </Link>
               </div>
             </div>

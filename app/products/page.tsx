@@ -7,6 +7,7 @@ import SearchFilter from '@/components/SearchFilter'
 import ProductGrid from '@/components/ProductGrid'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
 import Breadcrumbs from '@/components/Breadcrumbs'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Product {
   id: number
@@ -21,6 +22,7 @@ interface Product {
 }
 
 export default function Products() {
+  const { t } = useLanguage()
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,15 +59,15 @@ export default function Products() {
       <div className="container mx-auto px-4">
         <Breadcrumbs
           items={[
-            { name: 'Home', url: '/' },
-            { name: 'Products', url: '/products' }
+            { name: t('breadcrumbs.home'), url: '/' },
+            { name: t('nav.products'), url: '/products' }
           ]}
         />
         <h1 className="text-4xl md:text-5xl font-display font-bold mb-2 bg-gradient-to-r from-pink-600 to-blue-600 bg-clip-text text-transparent">
-          All Products
+          {t('products.title')}
         </h1>
         <p className="text-gray-600 dark:text-gray-300 mb-8">
-          Browse our complete catalog of virtual products and services
+          {t('products.pageDescription')}
         </p>
 
         {/* View Mode Toggle */}
@@ -83,7 +85,7 @@ export default function Products() {
                 <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
-                Grid
+                {t('productsPage.grid')}
               </button>
               <button
                 onClick={() => setViewMode('table')}
@@ -96,11 +98,11 @@ export default function Products() {
                 <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                 </svg>
-                Table
+                {t('productsPage.table')}
               </button>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {filteredProducts.length} of {products.length} products
+              {t('productsPage.showing')} {filteredProducts.length} {t('productsPage.of')} {products.length} {t('productsPage.products')}
             </p>
           </div>
         )}
@@ -124,13 +126,13 @@ export default function Products() {
                 </svg>
               </div>
               <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-                No Products Available
+                {t('products.noProducts')}
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-300 mb-2">
-                There are no available products for sale right now.
+                {t('products.noProductsDesc')}
               </p>
               <p className="text-gray-500 dark:text-gray-400">
-                Stay tuned! New products will be available soon.
+                {t('products.stayTuned')}
               </p>
             </div>
           </div>
@@ -143,10 +145,10 @@ export default function Products() {
                 </svg>
               </div>
               <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-                No Products Found
+                {t('productsPage.noProductsFound')}
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-300 mb-2">
-                Try adjusting your search or filter criteria.
+                {t('productsPage.tryAdjusting')}
               </p>
             </div>
           </div>
@@ -158,13 +160,13 @@ export default function Products() {
               <table className="w-full">
                 <thead className="bg-gradient-to-r from-pink-500 to-blue-500 text-white">
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Image</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Product Name</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Category</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Price</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Stock</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Description</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">Action</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{t('productsPage.image')}</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{t('productsPage.productName')}</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{t('common.category')}</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{t('common.price')}</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{t('common.stock')}</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{t('products.description')}</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold">{t('productsPage.action')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -204,7 +206,7 @@ export default function Products() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="px-3 py-1 rounded-full text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300">
-                          {product.category || 'Uncategorized'}
+                          {product.category || t('common.uncategorized')}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -218,12 +220,12 @@ export default function Products() {
                             ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
                             : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                         }`}>
-                          {product.stock > 0 ? `In Stock (${product.stock})` : 'Out of Stock'}
+                          {product.stock > 0 ? `${t('common.inStock')} (${product.stock})` : t('common.outOfStock')}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
-                          {product.description || 'No description available'}
+                          {product.description || t('common.noDescription')}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -231,7 +233,7 @@ export default function Products() {
                           href={`/products/${product.id}`}
                           className="inline-block px-4 py-2 bg-gradient-to-r from-pink-500 to-blue-500 text-white rounded-lg hover:from-pink-600 hover:to-blue-600 transition-all font-medium text-sm shadow-md"
                         >
-                          View Details
+                          {t('common.viewDetails')}
                         </Link>
                       </td>
                     </tr>

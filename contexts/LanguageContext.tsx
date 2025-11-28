@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
-type Language = 'th' | 'en' | 'zh' | 'ja'
+type Language = 'th' | 'en'
 
 interface LanguageContextType {
   language: Language
@@ -54,7 +54,7 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Products
     'products.title': 'All Products',
-    'products.description': 'Browse our complete catalog of virtual products and services',
+    'products.pageDescription': 'Browse our complete catalog of virtual products and services',
     'products.noProducts': 'No Products Available',
     'products.noProductsDesc': 'There are no available products for sale right now.',
     'products.recentlyViewed': 'Recently Viewed Products',
@@ -96,6 +96,132 @@ const translations: Record<Language, Record<string, string>> = {
     'order.shipped': 'Shipped',
     'order.delivered': 'Delivered',
     'order.cancelled': 'Cancelled',
+    
+    // Product Grid & Details
+    'products.noProductsInCategory': 'No Products Available',
+    'products.noProductsInCategoryDesc': 'There are no available products in this category right now.',
+    'products.stayTuned': 'Stay tuned! New products will be available soon.',
+    'products.uncategorized': 'Uncategorized',
+    'products.noDescription': 'No description available',
+    'products.inclVat': '(incl. VAT)',
+    'products.available': 'available',
+    'products.loginToBuy': 'Login to Buy',
+    'products.details': 'Details',
+    'products.outOfStockCannotPurchase': 'This product is out of stock and cannot be purchased.',
+    'products.addedToCart': 'Product added to cart!',
+    'products.removedFromWishlist': 'Removed from wishlist',
+    'products.addedToWishlist': 'Added to wishlist!',
+    'products.removeFromWishlistAria': 'Remove from wishlist',
+    'products.addToWishlistAria': 'Add to wishlist',
+    'products.inStockWithCount': 'In Stock',
+    'products.basePrice': 'Base price',
+    'products.description': 'Description',
+    'products.noDescriptionForProduct': 'No description available for this product.',
+    'products.viewFullDetails': 'View Full Details',
+    'products.backToProducts': 'Back to Products',
+    'products.loadingProduct': 'Loading product...',
+    'products.failedToLoad': 'Failed to load product',
+    'products.productNotFound': 'Product not found',
+    'products.errorLoadingProduct': 'An error occurred while loading product',
+    
+    // Search & Filter
+    'search.searchProducts': 'Search Products',
+    'search.placeholder': 'Search by name, description, or category...',
+    'search.priceRange': 'Price Range',
+    'search.minPrice': 'Min Price',
+    'search.maxPrice': 'Max Price',
+    'search.clearAllFilters': 'Clear All Filters',
+    
+    // Products Page
+    'productsPage.grid': 'Grid',
+    'productsPage.table': 'Table',
+    'productsPage.showing': 'Showing',
+    'productsPage.of': 'of',
+    'productsPage.products': 'products',
+    'productsPage.noProductsFound': 'No Products Found',
+    'productsPage.tryAdjusting': 'Try adjusting your search or filter criteria.',
+    'productsPage.image': 'Image',
+    'productsPage.productName': 'Product Name',
+    'productsPage.action': 'Action',
+    'productsPage.inStockWithCount': 'In Stock',
+    
+    // Cart Page
+    'cart.reviewItems': 'Review your items and proceed to checkout',
+    'cart.emptyTitle': 'Your Cart is Empty',
+    'cart.emptyDesc': 'Start shopping to add items to your cart!',
+    'cart.browseProducts': 'Browse Products',
+    'cart.quantity': 'Quantity',
+    'cart.each': 'each',
+    'cart.orderSummary': 'Order Summary',
+    'cart.subtotalItems': 'Subtotal',
+    'cart.items': 'items',
+    'cart.processing': 'Processing...',
+    'cart.proceedToCheckout': 'Proceed to Checkout',
+    'cart.continueShopping': 'Continue Shopping',
+    
+    // Wishlist Page
+    'wishlist.itemsSaved': 'items saved',
+    'wishlist.itemSaved': 'item',
+    'wishlist.clearAllConfirm': 'Are you sure you want to clear all items from your wishlist?',
+    'wishlist.cleared': 'Wishlist cleared',
+    'wishlist.view': 'View',
+    
+    // Quick View Modal
+    'quickView.description': 'Description',
+    
+    // Footer
+    'footer.companyDesc': 'Your premier destination for virtual products and services.',
+    'footer.quickLinks': 'Quick Links',
+    'footer.virtualAirlines': 'Virtual Airlines',
+    'footer.bots': 'Bots',
+    'footer.redeem': 'Redeem',
+    'footer.reviews': 'Reviews',
+    'footer.support': 'Support',
+    'footer.contactUs': 'Contact Us',
+    'footer.faq': 'FAQ',
+    'footer.termsOfService': 'Terms of Service',
+    'footer.privacyPolicy': 'Privacy Policy',
+    'footer.contact': 'Contact',
+    'footer.workingHours': 'Working Hours',
+    'footer.allRightsReserved': 'All rights reserved.',
+    'footer.terms': 'Terms',
+    'footer.privacy': 'Privacy',
+    'footer.cookies': 'Cookies',
+    
+    // Newsletter
+    'newsletter.title': 'Subscribe to Our Newsletter',
+    'newsletter.description': 'Get the latest updates on new products and exclusive offers.',
+    'newsletter.email': 'Email Address',
+    'newsletter.subscribe': 'Subscribe',
+    'newsletter.subscribing': 'Subscribing...',
+    'newsletter.success': 'Thank you for subscribing!',
+    'newsletter.error': 'Please enter a valid email address.',
+    'newsletter.alreadySubscribed': 'This email is already subscribed.',
+    
+    // Breadcrumbs
+    'breadcrumbs.home': 'Home',
+    
+    // Related Products
+    'relatedProducts.title': 'Related Products',
+    'relatedProducts.noRelated': 'No related products found',
+    
+    // Error Boundary
+    'error.somethingWentWrong': 'Something went wrong',
+    'error.tryAgain': 'Try Again',
+    'error.goHome': 'Go Home',
+    
+    // Stock Notification
+    'stock.invalidEmail': 'Invalid email address',
+    'stock.failedToSubscribe': 'Failed to subscribe. Please try again.',
+    
+    // Common Additional
+    'common.uncategorized': 'Uncategorized',
+    'common.noDescription': 'No description available',
+    'common.inclVat': '(incl. VAT)',
+    'common.available': 'available',
+    'common.each': 'each',
+    'common.items': 'items',
+    'common.item': 'item',
   },
   th: {
     // Navigation
@@ -140,7 +266,7 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Products
     'products.title': 'สินค้าทั้งหมด',
-    'products.description': 'เรียกดูแคตตาล็อกสินค้าและบริการเสมือนจริงทั้งหมดของเรา',
+    'products.pageDescription': 'เรียกดูแคตตาล็อกสินค้าและบริการเสมือนจริงทั้งหมดของเรา',
     'products.noProducts': 'ไม่มีสินค้า',
     'products.noProductsDesc': 'ไม่มีสินค้าที่พร้อมจำหน่ายในขณะนี้',
     'products.recentlyViewed': 'สินค้าที่ดูล่าสุด',
@@ -182,178 +308,132 @@ const translations: Record<Language, Record<string, string>> = {
     'order.shipped': 'จัดส่งแล้ว',
     'order.delivered': 'ส่งมอบแล้ว',
     'order.cancelled': 'ยกเลิก',
-  },
-  zh: {
-    // Navigation
-    'nav.home': '首页',
-    'nav.products': '产品',
-    'nav.cart': '购物车',
-    'nav.wishlist': '愿望清单',
-    'nav.dashboard': '仪表板',
-    'nav.login': '登录',
-    'nav.register': '注册',
-    'nav.logout': '登出',
-    'nav.admin': '管理员',
     
-    // Common
-    'common.addToCart': '加入购物车',
-    'common.viewDetails': '查看详情',
-    'common.quickView': '快速查看',
-    'common.price': '价格',
-    'common.stock': '库存',
-    'common.inStock': '有货',
-    'common.outOfStock': '缺货',
-    'common.search': '搜索',
-    'common.filter': '筛选',
-    'common.category': '类别',
-    'common.allCategories': '所有类别',
-    'common.sortBy': '排序方式',
-    'common.newest': '最新',
-    'common.priceLowToHigh': '价格：从低到高',
-    'common.priceHighToLow': '价格：从高到低',
-    'common.nameAZ': '名称 (A-Z)',
-    'common.loading': '加载中...',
-    'common.error': '错误',
-    'common.success': '成功',
-    'common.close': '关闭',
-    'common.save': '保存',
-    'common.cancel': '取消',
-    'common.delete': '删除',
-    'common.edit': '编辑',
-    'common.back': '返回',
-    'common.next': '下一步',
-    'common.previous': '上一步',
+    // Product Grid & Details
+    'products.noProductsInCategory': 'ไม่มีสินค้า',
+    'products.noProductsInCategoryDesc': 'ไม่มีสินค้าในหมวดหมู่นี้ในขณะนี้',
+    'products.stayTuned': 'รอติดตาม! สินค้าใหม่จะพร้อมจำหน่ายเร็วๆ นี้',
+    'products.uncategorized': 'ไม่มีหมวดหมู่',
+    'products.noDescription': 'ไม่มีคำอธิบาย',
+    'products.inclVat': '(รวมภาษีมูลค่าเพิ่ม)',
+    'products.available': 'มีสินค้า',
+    'products.loginToBuy': 'เข้าสู่ระบบเพื่อซื้อ',
+    'products.details': 'รายละเอียด',
+    'products.outOfStockCannotPurchase': 'สินค้านี้หมดสต็อกและไม่สามารถซื้อได้',
+    'products.addedToCart': 'เพิ่มสินค้าลงตะกร้าแล้ว!',
+    'products.removedFromWishlist': 'ลบออกจากรายการโปรดแล้ว',
+    'products.addedToWishlist': 'เพิ่มในรายการโปรดแล้ว!',
+    'products.removeFromWishlistAria': 'ลบออกจากรายการโปรด',
+    'products.addToWishlistAria': 'เพิ่มในรายการโปรด',
+    'products.inStockWithCount': 'มีสินค้า',
+    'products.basePrice': 'ราคาพื้นฐาน',
+    'products.description': 'คำอธิบาย',
+    'products.noDescriptionForProduct': 'ไม่มีคำอธิบายสำหรับสินค้านี้',
+    'products.viewFullDetails': 'ดูรายละเอียดเต็ม',
+    'products.backToProducts': 'กลับไปยังสินค้า',
+    'products.loadingProduct': 'กำลังโหลดสินค้า...',
+    'products.failedToLoad': 'โหลดสินค้าไม่สำเร็จ',
+    'products.productNotFound': 'ไม่พบสินค้า',
+    'products.errorLoadingProduct': 'เกิดข้อผิดพลาดขณะโหลดสินค้า',
     
-    // Products
-    'products.title': '所有产品',
-    'products.description': '浏览我们完整的虚拟产品和服务目录',
-    'products.noProducts': '暂无产品',
-    'products.noProductsDesc': '目前没有可用的产品',
-    'products.recentlyViewed': '最近查看的产品',
-    'products.related': '相关产品',
-    'products.addToWishlist': '添加到愿望清单',
-    'products.removeFromWishlist': '从愿望清单中移除',
+    // Search & Filter
+    'search.searchProducts': 'ค้นหาสินค้า',
+    'search.placeholder': 'ค้นหาตามชื่อ คำอธิบาย หรือหมวดหมู่...',
+    'search.priceRange': 'ช่วงราคา',
+    'search.minPrice': 'ราคาต่ำสุด',
+    'search.maxPrice': 'ราคาสูงสุด',
+    'search.clearAllFilters': 'ล้างตัวกรองทั้งหมด',
     
-    // Cart
-    'cart.title': '购物车',
-    'cart.empty': '您的购物车是空的',
-    'cart.subtotal': '小计',
-    'cart.vat': '增值税 (7%)',
-    'cart.total': '总计',
-    'cart.checkout': '结账',
+    // Products Page
+    'productsPage.grid': 'ตาราง',
+    'productsPage.table': 'รายการ',
+    'productsPage.showing': 'แสดง',
+    'productsPage.of': 'จาก',
+    'productsPage.products': 'สินค้า',
+    'productsPage.noProductsFound': 'ไม่พบสินค้า',
+    'productsPage.tryAdjusting': 'ลองปรับเกณฑ์การค้นหาหรือตัวกรองของคุณ',
+    'productsPage.image': 'รูปภาพ',
+    'productsPage.productName': 'ชื่อสินค้า',
+    'productsPage.action': 'การดำเนินการ',
+    'productsPage.inStockWithCount': 'มีสินค้า',
     
-    // Wishlist
-    'wishlist.title': '我的愿望清单',
-    'wishlist.empty': '您的愿望清单是空的',
-    'wishlist.emptyDesc': '开始将您喜欢的产品添加到愿望清单！',
-    'wishlist.clearAll': '全部清除',
+    // Cart Page
+    'cart.reviewItems': 'ตรวจสอบรายการของคุณและดำเนินการชำระเงิน',
+    'cart.emptyTitle': 'ตะกร้าของคุณว่างเปล่า',
+    'cart.emptyDesc': 'เริ่มช้อปปิ้งเพื่อเพิ่มสินค้าลงในตะกร้าของคุณ!',
+    'cart.browseProducts': 'เรียกดูสินค้า',
+    'cart.quantity': 'จำนวน',
+    'cart.each': 'ต่อชิ้น',
+    'cart.orderSummary': 'สรุปออเดอร์',
+    'cart.subtotalItems': 'ยอดรวม',
+    'cart.items': 'รายการ',
+    'cart.processing': 'กำลังดำเนินการ...',
+    'cart.proceedToCheckout': 'ดำเนินการชำระเงิน',
+    'cart.continueShopping': 'ช้อปปิ้งต่อ',
     
-    // Stock Notifications
-    'stock.notifyMe': '有货时通知我',
-    'stock.notifySuccess': '当此产品重新有货时，您将收到通知',
-    'stock.alreadyNotified': '您已订阅此产品的通知',
-    'stock.email': '电子邮件地址',
-    'stock.subscribe': '订阅',
+    // Wishlist Page
+    'wishlist.itemsSaved': 'รายการที่บันทึก',
+    'wishlist.itemSaved': 'รายการ',
+    'wishlist.clearAllConfirm': 'คุณแน่ใจหรือไม่ว่าต้องการลบรายการทั้งหมดออกจากรายการโปรดของคุณ?',
+    'wishlist.cleared': 'ลบรายการโปรดทั้งหมดแล้ว',
+    'wishlist.view': 'ดู',
     
-    // Order Tracking
-    'order.tracking': '订单跟踪',
-    'order.status': '状态',
-    'order.orderNumber': '订单号',
-    'order.date': '订单日期',
-    'order.total': '总计',
-    'order.items': '项目',
-    'order.timeline': '订单时间线',
-    'order.pending': '待处理',
-    'order.processing': '处理中',
-    'order.shipped': '已发货',
-    'order.delivered': '已交付',
-    'order.cancelled': '已取消',
-  },
-  ja: {
-    // Navigation
-    'nav.home': 'ホーム',
-    'nav.products': '商品',
-    'nav.cart': 'カート',
-    'nav.wishlist': 'ウィッシュリスト',
-    'nav.dashboard': 'ダッシュボード',
-    'nav.login': 'ログイン',
-    'nav.register': '登録',
-    'nav.logout': 'ログアウト',
-    'nav.admin': '管理者',
+    // Quick View Modal
+    'quickView.description': 'คำอธิบาย',
     
-    // Common
-    'common.addToCart': 'カートに追加',
-    'common.viewDetails': '詳細を見る',
-    'common.quickView': 'クイックビュー',
-    'common.price': '価格',
-    'common.stock': '在庫',
-    'common.inStock': '在庫あり',
-    'common.outOfStock': '在庫切れ',
-    'common.search': '検索',
-    'common.filter': 'フィルター',
-    'common.category': 'カテゴリー',
-    'common.allCategories': 'すべてのカテゴリー',
-    'common.sortBy': '並び替え',
-    'common.newest': '新着順',
-    'common.priceLowToHigh': '価格：安い順',
-    'common.priceHighToLow': '価格：高い順',
-    'common.nameAZ': '名前 (A-Z)',
-    'common.loading': '読み込み中...',
-    'common.error': 'エラー',
-    'common.success': '成功',
-    'common.close': '閉じる',
-    'common.save': '保存',
-    'common.cancel': 'キャンセル',
-    'common.delete': '削除',
-    'common.edit': '編集',
-    'common.back': '戻る',
-    'common.next': '次へ',
-    'common.previous': '前へ',
+    // Footer
+    'footer.companyDesc': 'จุดหมายปลายทางชั้นนำของคุณสำหรับผลิตภัณฑ์และบริการเสมือนจริง',
+    'footer.quickLinks': 'ลิงก์ด่วน',
+    'footer.virtualAirlines': 'สายการบินเสมือน',
+    'footer.bots': 'บอท',
+    'footer.redeem': 'แลกของรางวัล',
+    'footer.reviews': 'รีวิว',
+    'footer.support': 'การสนับสนุน',
+    'footer.contactUs': 'ติดต่อเรา',
+    'footer.faq': 'คำถามที่พบบ่อย',
+    'footer.termsOfService': 'เงื่อนไขการให้บริการ',
+    'footer.privacyPolicy': 'นโยบายความเป็นส่วนตัว',
+    'footer.contact': 'ติดต่อ',
+    'footer.workingHours': 'เวลาทำการ',
+    'footer.allRightsReserved': 'สงวนลิขสิทธิ์',
+    'footer.terms': 'เงื่อนไข',
+    'footer.privacy': 'ความเป็นส่วนตัว',
+    'footer.cookies': 'คุกกี้',
     
-    // Products
-    'products.title': 'すべての商品',
-    'products.description': 'バーチャル製品とサービスの完全なカタログを閲覧',
-    'products.noProducts': '商品がありません',
-    'products.noProductsDesc': '現在利用可能な商品はありません',
-    'products.recentlyViewed': '最近閲覧した商品',
-    'products.related': '関連商品',
-    'products.addToWishlist': 'ウィッシュリストに追加',
-    'products.removeFromWishlist': 'ウィッシュリストから削除',
+    // Newsletter
+    'newsletter.title': 'สมัครรับจดหมายข่าวของเรา',
+    'newsletter.description': 'รับอัปเดตล่าสุดเกี่ยวกับสินค้าใหม่และข้อเสนอพิเศษ',
+    'newsletter.email': 'อีเมล',
+    'newsletter.subscribe': 'สมัครรับ',
+    'newsletter.subscribing': 'กำลังสมัคร...',
+    'newsletter.success': 'ขอบคุณที่สมัครรับ!',
+    'newsletter.error': 'กรุณากรอกอีเมลที่ถูกต้อง',
+    'newsletter.alreadySubscribed': 'อีเมลนี้สมัครรับแล้ว',
     
-    // Cart
-    'cart.title': 'ショッピングカート',
-    'cart.empty': 'カートは空です',
-    'cart.subtotal': '小計',
-    'cart.vat': '消費税 (7%)',
-    'cart.total': '合計',
-    'cart.checkout': 'チェックアウト',
+    // Breadcrumbs
+    'breadcrumbs.home': 'หน้าแรก',
     
-    // Wishlist
-    'wishlist.title': 'マイウィッシュリスト',
-    'wishlist.empty': 'ウィッシュリストは空です',
-    'wishlist.emptyDesc': 'お気に入りの商品をウィッシュリストに追加しましょう！',
-    'wishlist.clearAll': 'すべてクリア',
+    // Related Products
+    'relatedProducts.title': 'สินค้าที่เกี่ยวข้อง',
+    'relatedProducts.noRelated': 'ไม่พบสินค้าที่เกี่ยวข้อง',
     
-    // Stock Notifications
-    'stock.notifyMe': '入荷時に通知',
-    'stock.notifySuccess': 'この商品が再入荷されたら通知されます',
-    'stock.alreadyNotified': 'この商品の通知を既に購読しています',
-    'stock.email': 'メールアドレス',
-    'stock.subscribe': '購読',
+    // Error Boundary
+    'error.somethingWentWrong': 'เกิดข้อผิดพลาด',
+    'error.tryAgain': 'ลองอีกครั้ง',
+    'error.goHome': 'กลับหน้าแรก',
     
-    // Order Tracking
-    'order.tracking': '注文追跡',
-    'order.status': 'ステータス',
-    'order.orderNumber': '注文番号',
-    'order.date': '注文日',
-    'order.total': '合計',
-    'order.items': 'アイテム',
-    'order.timeline': '注文タイムライン',
-    'order.pending': '保留中',
-    'order.processing': '処理中',
-    'order.shipped': '発送済み',
-    'order.delivered': '配達済み',
-    'order.cancelled': 'キャンセル済み',
+    // Stock Notification
+    'stock.invalidEmail': 'อีเมลไม่ถูกต้อง',
+    'stock.failedToSubscribe': 'สมัครรับการแจ้งเตือนไม่สำเร็จ กรุณาลองอีกครั้ง',
+    
+    // Common Additional
+    'common.uncategorized': 'ไม่มีหมวดหมู่',
+    'common.noDescription': 'ไม่มีคำอธิบาย',
+    'common.inclVat': '(รวมภาษีมูลค่าเพิ่ม)',
+    'common.available': 'มีสินค้า',
+    'common.each': 'ต่อชิ้น',
+    'common.items': 'รายการ',
+    'common.item': 'รายการ',
   },
 }
 
@@ -365,13 +445,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedLang = localStorage.getItem('language') as Language
-      if (savedLang && ['th', 'en', 'zh', 'ja'].includes(savedLang)) {
+      if (savedLang && ['th', 'en'].includes(savedLang)) {
         setLanguageState(savedLang)
       } else {
         // Detect browser language
         const browserLang = navigator.language.split('-')[0]
-        if (browserLang === 'th' || browserLang === 'zh' || browserLang === 'ja') {
-          setLanguageState(browserLang as Language)
+        if (browserLang === 'th') {
+          setLanguageState('th')
+        } else {
+          setLanguageState('en')
         }
       }
     }

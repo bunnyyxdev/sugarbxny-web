@@ -8,13 +8,7 @@ export default function LanguageUpdater() {
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
-      const langMap: Record<string, string> = {
-        en: 'en',
-        th: 'th',
-        zh: 'zh-CN',
-        ja: 'ja',
-      }
-      document.documentElement.lang = langMap[language] || 'en'
+      document.documentElement.lang = language
     }
   }, [language])
 

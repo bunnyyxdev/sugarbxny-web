@@ -8,6 +8,7 @@ import { useCart } from '@/contexts/CartContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useWishlist } from '@/contexts/WishlistContext'
 import { useRecentlyViewed } from '@/contexts/RecentlyViewedContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import QuickViewModal from '@/components/QuickViewModal'
 
 interface Product {
@@ -32,6 +33,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
   const { showToast } = useToast()
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
   const { addToRecentlyViewed } = useRecentlyViewed()
+  const { t } = useLanguage()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
@@ -59,7 +61,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
     
     // Prevent adding to cart if stock is 0 or less
     if (product.stock <= 0) {
-      showToast('This product is out of stock and cannot be purchased.', 'error')
+      showToast(t('products.outOfStockCannotPurchase'), 'error')
       return
     }
     
@@ -75,7 +77,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
       image_url: product.image_url,
       category: product.category
     })
-    showToast('Product added to cart!', 'success')
+    showToast(t('products.addedToCart'), 'success')
   }
 
   const handleQuickView = (e: React.MouseEvent, product: Product) => {
@@ -97,7 +99,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
     
     if (isInWishlist(product.id)) {
       removeFromWishlist(product.id)
-      showToast('Removed from wishlist', 'info')
+      showToast(t('products.removedFromWishlist'), 'info')
     } else {
       addToWishlist({
         id: product.id,
@@ -106,7 +108,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
         image_url: product.image_url,
         category: product.category
       })
-      showToast('Added to wishlist!', 'success')
+      showToast(t('products.addedToWishlist'), 'success')
     }
   }
 
@@ -128,13 +130,13 @@ export default function ProductGrid({ products }: ProductGridProps) {
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-            No Products Available
+            {t('products.noProductsInCategory')}
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-2">
-            There are no available products in this category right now.
+            {t('products.noProductsInCategoryDesc')}
           </p>
           <p className="text-gray-500 dark:text-gray-400">
-            Stay tuned! New products will be available soon.
+            {t('products.stayTuned')}
           </p>
         </div>
       </div>
@@ -179,7 +181,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                     ? 'bg-pink-500 text-white'
                     : 'bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:bg-pink-100 dark:hover:bg-pink-900/30'
                 }`}
-                aria-label={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                aria-label={isInWishlist(product.id) ? t('products.removeFromWishlistAria') : t('products.addToWishlistAria')}
               >
                 <svg
                   className="w-5 h-5"
@@ -200,21 +202,21 @@ export default function ProductGrid({ products }: ProductGridProps) {
                   ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
                   : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
               }`}>
-                {product.stock > 0 ? `In Stock` : 'Out of Stock'}
+                {product.stock > 0 ? t('common.inStock') : t('common.outOfStock')}
               </span>
             </div>
           </div>
           <div className="p-6">
             <div className="mb-2">
               <span className="px-3 py-1 rounded-full text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300">
-                {product.category || 'Uncategorized'}
+                {product.category || t('common.uncategorized')}
               </span>
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2">
               {product.name}
             </h3>
             <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
-              {product.description || 'No description available'}
+              {product.description || t('common.noDescription')}
             </p>
             <div className="flex items-center justify-between">
               <div>
@@ -223,12 +225,12 @@ export default function ProductGrid({ products }: ProductGridProps) {
                     ฿{((Number(product.price) || 0) * 1.07).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    (incl. VAT)
+                    {t('common.inclVat')}
                   </span>
                 </div>
                 {product.stock > 0 && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {product.stock} available
+                    {product.stock} {t('common.available')}
                   </p>
                 )}
               </div>
@@ -239,28 +241,28 @@ export default function ProductGrid({ products }: ProductGridProps) {
                     disabled={checkingAuth}
                     className="px-4 py-2 bg-gradient-to-r from-pink-500 to-blue-500 text-white rounded-lg hover:from-pink-600 hover:to-blue-600 transition-all font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {!isAuthenticated ? 'Login to Buy' : 'Add to Cart'}
+                    {!isAuthenticated ? t('products.loginToBuy') : t('common.addToCart')}
                   </button>
                 ) : (
                   <button 
                     disabled
                     className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 rounded-lg cursor-not-allowed font-medium text-sm"
                   >
-                    Out of Stock
+                    {t('common.outOfStock')}
                   </button>
                 )}
                 <button
                   onClick={(e) => handleQuickView(e, product)}
                   className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-blue-300 dark:border-blue-700 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-all font-medium text-sm"
                 >
-                  Quick View
+                  {t('common.quickView')}
                 </button>
                 <Link
                   href={`/products/${product.id}`}
                   className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-300 dark:border-pink-700 rounded-lg hover:border-pink-500 dark:hover:border-pink-500 transition-all font-medium text-sm"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  Details →
+                  {t('products.details')} →
                 </Link>
               </div>
             </div>

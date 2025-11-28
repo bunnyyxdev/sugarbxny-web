@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Product {
   id: number
@@ -20,6 +21,7 @@ interface SearchFilterProps {
 }
 
 export default function SearchFilter({ products, onFilteredProductsChange }: SearchFilterProps) {
+  const { t } = useLanguage()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'name' | 'price-asc' | 'price-desc' | 'newest'>('newest')
@@ -91,12 +93,12 @@ export default function SearchFilter({ products, onFilteredProductsChange }: Sea
         {/* Search Input */}
         <div className="lg:col-span-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Search Products
+            {t('search.searchProducts')}
           </label>
           <div className="relative">
             <input
               type="text"
-              placeholder="Search by name, description, or category..."
+              placeholder={t('search.placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -120,7 +122,7 @@ export default function SearchFilter({ products, onFilteredProductsChange }: Sea
         {/* Category Filter */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Category
+            {t('common.category')}
           </label>
           <select
             value={selectedCategory}
@@ -129,7 +131,7 @@ export default function SearchFilter({ products, onFilteredProductsChange }: Sea
           >
             {categories.map((cat) => (
               <option key={cat} value={cat}>
-                {cat === 'all' ? 'All Categories' : cat}
+                {cat === 'all' ? t('common.allCategories') : cat}
               </option>
             ))}
           </select>
@@ -138,28 +140,28 @@ export default function SearchFilter({ products, onFilteredProductsChange }: Sea
         {/* Sort By */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Sort By
+            {t('common.sortBy')}
           </label>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
-            <option value="newest">Newest First</option>
-            <option value="name">Name (A-Z)</option>
-            <option value="price-asc">Price: Low to High</option>
-            <option value="price-desc">Price: High to Low</option>
+            <option value="newest">{t('common.newest')}</option>
+            <option value="name">{t('common.nameAZ')}</option>
+            <option value="price-asc">{t('common.priceLowToHigh')}</option>
+            <option value="price-desc">{t('common.priceHighToLow')}</option>
           </select>
         </div>
 
         {/* Price Range */}
         <div className="lg:col-span-4">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Price Range: ฿{priceRange[0].toLocaleString()} - ฿{priceRange[1].toLocaleString()}
+            {t('search.priceRange')}: ฿{priceRange[0].toLocaleString()} - ฿{priceRange[1].toLocaleString()}
           </label>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Min Price</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('search.minPrice')}</label>
               <input
                 type="number"
                 min={minPrice}
@@ -170,7 +172,7 @@ export default function SearchFilter({ products, onFilteredProductsChange }: Sea
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Max Price</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('search.maxPrice')}</label>
               <input
                 type="number"
                 min={minPrice}
@@ -196,7 +198,7 @@ export default function SearchFilter({ products, onFilteredProductsChange }: Sea
             }}
             className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
           >
-            Clear All Filters
+            {t('search.clearAllFilters')}
           </button>
         </div>
       )}
