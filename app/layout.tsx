@@ -53,6 +53,10 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({
@@ -101,7 +105,7 @@ export default function RootLayout({
             </ToastProvider>
           </CartProvider>
         </ThemeProvider>
-        <Analytics />
+        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )
