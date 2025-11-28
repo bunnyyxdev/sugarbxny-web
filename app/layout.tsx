@@ -5,6 +5,7 @@ import { ToastProvider } from '@/contexts/ToastContext'
 import { WishlistProvider } from '@/contexts/WishlistContext'
 import { RecentlyViewedProvider } from '@/contexts/RecentlyViewedContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
+import LanguageUpdater from '@/components/LanguageUpdater'
 import TopBar from '@/components/TopBar'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -96,6 +97,7 @@ export default function RootLayout({
         <StructuredData type="organization" />
         <ThemeProvider>
           <LanguageProvider>
+            <LanguageUpdater />
             <CartProvider>
               <WishlistProvider>
                 <RecentlyViewedProvider>
