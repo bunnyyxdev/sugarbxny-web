@@ -8,6 +8,10 @@ import { useCart } from '@/contexts/CartContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useRecentlyViewed } from '@/contexts/RecentlyViewedContext'
 import RecentlyViewed from '@/components/RecentlyViewed'
+import ProductShare from '@/components/ProductShare'
+import StructuredData from '@/components/StructuredData'
+import Breadcrumbs from '@/components/Breadcrumbs'
+import RelatedProducts from '@/components/RelatedProducts'
 
 export const dynamic = 'force-dynamic'
 
@@ -118,16 +122,15 @@ export default function ProductDetail() {
 
   return (
     <div className="py-12 bg-gradient-to-br from-pink-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 min-h-screen transition-colors">
+      <StructuredData type="product" data={product} />
       <div className="container mx-auto px-4">
-        <Link
-          href="/products"
-          className="inline-flex items-center text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 mb-6 font-medium"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Products
-        </Link>
+        <Breadcrumbs
+          items={[
+            { name: 'Home', url: '/' },
+            { name: 'Products', url: '/products' },
+            { name: product.name, url: `/products/${product.id}` }
+          ]}
+        />
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
           <div className="md:flex md:flex-col">
@@ -243,10 +246,23 @@ export default function ProductDetail() {
                 >
                   Redeem with Code
                 </Link>
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <ProductShare
+                    productId={product.id}
+                    productName={product.name}
+                    productUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/products/${product.id}`}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
+        
+        <RelatedProducts 
+          currentProductId={product.id}
+          currentCategory={product.category}
+          limit={4}
+        />
         
         <RecentlyViewed limit={6} />
       </div>

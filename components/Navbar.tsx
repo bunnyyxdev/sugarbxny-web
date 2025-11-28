@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useCart } from '@/contexts/CartContext'
+import { useWishlist } from '@/contexts/WishlistContext'
 import { usePathname } from 'next/navigation'
 
 export default function Navbar() {
@@ -13,8 +14,10 @@ export default function Navbar() {
   const [userEmail, setUserEmail] = useState('')
   const { theme, toggleTheme } = useTheme()
   const { getItemCount } = useCart()
+  const { getItemCount: getWishlistCount } = useWishlist()
   const pathname = usePathname()
   const cartCount = getItemCount()
+  const wishlistCount = getWishlistCount()
   const adminCheckedRef = useRef(false)
   const prevPathnameRef = useRef<string | null>(null)
 
@@ -194,6 +197,20 @@ export default function Navbar() {
                 </Link>
               </>
             )}
+            {/* Wishlist */}
+            <Link
+              href="/wishlist"
+              className="relative px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors font-medium"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {wishlistCount > 9 ? '9+' : wishlistCount}
+                </span>
+              )}
+            </Link>
             {/* Cart */}
             <Link
               href="/cart"
@@ -306,6 +323,15 @@ export default function Navbar() {
                     </Link>
                   </>
                 )}
+                <Link
+                  href="/wishlist"
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors font-medium text-center flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  Wishlist {wishlistCount > 0 && `(${wishlistCount})`}
+                </Link>
                 <Link
                   href="/cart"
                   className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors font-medium text-center flex items-center justify-center gap-2"

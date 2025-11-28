@@ -1,11 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+import Newsletter from '@/components/Newsletter'
 
 export default function Footer() {
   return (
     <footer className="bg-gradient-to-r from-pink-600 to-blue-600 dark:from-pink-800 dark:to-blue-800 text-white mt-auto transition-colors">
       <div className="container mx-auto px-4 py-12">
+        {/* Newsletter Section */}
+        <div className="mb-12">
+          <Newsletter />
+        </div>
         <div className="grid md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>

@@ -10,6 +10,8 @@ import Footer from '@/components/Footer'
 import BlackRibbon from '@/components/BlackRibbon'
 import Toast from '@/components/Toast'
 import BackToTop from '@/components/BackToTop'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import StructuredData from '@/components/StructuredData'
 import { Analytics } from '@vercel/analytics/react'
 import { Comic_Neue } from 'next/font/google'
 import './globals.css'
@@ -90,22 +92,25 @@ export default function RootLayout({
         />
       </head>
       <body className={`${comicNeue.className} flex flex-col min-h-screen`}>
+        <StructuredData type="organization" />
         <ThemeProvider>
           <CartProvider>
             <WishlistProvider>
               <RecentlyViewedProvider>
                 <ToastProvider>
-                  <div className="relative">
-                    <BlackRibbon />
-                    <TopBar />
-                  </div>
-                  <Navbar />
-                  <main className="flex-grow">
-                    {children}
-                  </main>
-                  <Footer />
-                  <Toast />
-                  <BackToTop />
+                  <ErrorBoundary>
+                    <div className="relative">
+                      <BlackRibbon />
+                      <TopBar />
+                    </div>
+                    <Navbar />
+                    <main className="flex-grow">
+                      {children}
+                    </main>
+                    <Footer />
+                    <Toast />
+                    <BackToTop />
+                  </ErrorBoundary>
                 </ToastProvider>
               </RecentlyViewedProvider>
             </WishlistProvider>

@@ -6,6 +6,7 @@ import Image from 'next/image'
 import SearchFilter from '@/components/SearchFilter'
 import ProductGrid from '@/components/ProductGrid'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
+import Breadcrumbs from '@/components/Breadcrumbs'
 
 interface Product {
   id: number
@@ -54,6 +55,12 @@ export default function Products() {
   return (
     <div className="py-12 bg-gradient-to-br from-pink-50 via-white to-blue-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 min-h-screen">
       <div className="container mx-auto px-4">
+        <Breadcrumbs
+          items={[
+            { name: 'Home', url: '/' },
+            { name: 'Products', url: '/products' }
+          ]}
+        />
         <h1 className="text-4xl md:text-5xl font-display font-bold mb-2 bg-gradient-to-r from-pink-600 to-blue-600 bg-clip-text text-transparent">
           All Products
         </h1>
